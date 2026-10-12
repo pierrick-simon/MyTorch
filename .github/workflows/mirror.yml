@@ -20,26 +20,26 @@ jobs:
     outputs:
       run_action: ${{ steps.valid.outputs.run_action }}
     steps:
-      - name: Verify if in correct repositor
+      - name: Verify if in correct repository
         id: valid
         if: ${{ !contains(env.MIRROR_URL, github.repository) }}
         run: echo "run_action=true" >> "$GITHUB_OUTPUT"
+
   check_program_compilation:
     needs: check_valid_repo
-    runs-on: ubuntu-latest
-    container:
-      image: epitechcontent/epitest-docker:latest
+    if: needs.check_valid_repo.outputs.run_action == 'true'
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: '0'
+
       - name: Check Binary
         run: |
-          files=${{ env.BINARY }}
-          for file in $(echo $files | sed "s/,/ /g"); do
+          for file in $(echo "${{ env.BINARY }}" | sed "s/,/ /g"); do
             if ! [ -x "$file" ]; then
-              echo "::error:: File '$file' does not exist or is not executable."
+              echo "::error::File '$file' does not exist or is not executable."
               exit 1
             fi
           done
@@ -53,7 +53,7 @@ jobs:
       pull-requests: write
 
   push_to_mirror:
-    needs: [ruff]
+    needs: [check_valid_repo, check_program_compilation, ruff]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
