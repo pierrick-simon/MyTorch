@@ -1,2 +1,2 @@
-def main(argv: list[str]) -> int:
+def main() -> int:
     return 0

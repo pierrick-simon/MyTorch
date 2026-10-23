@@ -11,7 +11,7 @@ on:
 
 env:
   MIRROR_URL: "git@github.com:EpitechPGE3-2026/G-CNA-501-PAR-5-1-mytorch-7.git"
-  BINARY: "my_torch_analyzer"
+  BINARY: "my_torch_analyzer, my_torch_generator"
 
 
 jobs:

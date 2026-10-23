@@ -1,7 +1,6 @@
 #!.venv/bin/python
 
 import src.my_torch_generator.main as main
-import sys
 
 if __name__ == "__main__":
-    exit(main.main(sys.argv))
+    exit(main.main())
