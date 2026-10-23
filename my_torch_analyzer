@@ -1,6 +1,6 @@
 #!.venv/bin/python
 
-import src.main as main
+import src.my_torch_analyzer.main as main
 import sys
 
 if __name__ == "__main__":
