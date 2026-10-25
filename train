@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+from MLP import MLP
+from common.truthTables import *
+from common.activationFunctions.sigmoid import AFSigmoid
+import random as rand
+from sys import argv
+from typeguard import typechecked
+
+layers = [2]
+nbInputs = 2
+nbOutputs = 1
+learningRate = 0.1
+
+if len(argv) > 3:
+    exit(84)
+elif len(argv) == 3:
+    p = MLP(nbInputs, layers, nbOutputs, learningRate, AFSigmoid, int(argv[2]))
+else:
+    p = MLP(nbInputs, layers, nbOutputs, learningRate, AFSigmoid)
+
+@typechecked
+def train(n: int, table: list[dict[str, list[float]]]):
+    for _ in range(n):
+        case = rand.randint(0, len(table) - 1)
+        output = p.tick(table[case]["inputs"])
+        p.learn(output, table[case]["expectedOutputs"])
+    print(f"Trained over {n} iterations.")
+
+train(100000, truthTableXor)
+p.save(argv[1])
