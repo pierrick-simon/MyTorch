@@ -1,1 +1,7 @@
+# external lib for all projects in my_torch
 typeguard
+
+# external lib for my_torch_analyzer project
+
+# external lib for my_torch_generator the project
+chess==1.11.2
