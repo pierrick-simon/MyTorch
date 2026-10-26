@@ -1,4 +1,4 @@
-from common.perceptron import Perceptron
+from .perceptron import Perceptron
 import random as rand
 import pickle
 from collections.abc import Callable

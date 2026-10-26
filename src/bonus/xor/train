@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from MLP import MLP
-from common.truthTables import *
-from common.activationFunctions.sigmoid import AFSigmoid
+from my_torch.MLP import MLP
+from truthTables import *
+from my_torch.activationFunctions.sigmoid import AFSigmoid
 import random as rand
 from sys import argv
 from typeguard import typechecked
