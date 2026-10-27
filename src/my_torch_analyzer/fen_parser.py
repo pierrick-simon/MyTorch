@@ -28,7 +28,7 @@ def parse_line(line: str, check_consistency: bool = False):
 
     if result is not None:
         if STATE_LABELS.get(result.lower()) is None:
-            raise ValueError(f"Unknown result {result!r}, expected one of {sorted(LABELS)}")
+            raise ValueError(f"Unknown result {result!r}, expected one of {sorted(STATE_LABELS)}")
         if check_consistency and result != expected_label(board):
             raise ValueError(f"Result {result!r} does not match position (is {expected_label(board)!r})")
 

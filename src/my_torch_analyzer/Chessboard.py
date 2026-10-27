@@ -90,6 +90,16 @@ class Chessboard:
                     self.squares.append(Square())
             else:
                 self.squares.append(Square(letter))
+        self.extra: list[float] = []
+        self.extra.append(1.0 if parts[Fen.ACTIVECOLOR.value] == "w" else 0.0)
+        castling = parts[Fen.CASTLING.value]
+        for letter in "KQkq":
+            self.extra.append(1.0 if letter in castling else 0.0)
+        passant = parts[Fen.PASSANT.value]
+        for file in "abcdefgh":
+            self.extra.append(1.0 if passant.startswith(file) else 0.0)
+        self.extra.append(min(int(parts[Fen.HALFMOVE.value]), 100) / 100)
+        self.extra.append(min(int(parts[Fen.FULLMOVE.value]), 200) / 200)
         self.state = [0, 0]
         self.has_state = False
         if (state != ""):
@@ -101,6 +111,7 @@ class Chessboard:
         tmp: list[float] = []
         for square in self.squares:
             tmp.extend(square.getList())
+        tmp.extend(self.extra)
         return tmp
 
     @typechecked
