@@ -3,15 +3,17 @@ import random as rand
 from typeguard import typechecked
 import click
 
-ACTIONS = ["save", "resume", "quit"]
+ACTIONS = {"s": "save", "r": "resume", "q": "quit"}
 
 @typechecked
 def askAfterInterrupt(i: int, n: int) -> str:
     print(f"\nTraining interrupted after {i}/{n} iterations.")
+    choices = list(ACTIONS.keys()) + list(ACTIONS.values())
     try:
-        return click.prompt("Save the model, resume training or quit without saving?", type=click.Choice(ACTIONS), default="save")
+        answer = click.prompt(f"Save the model, resume training or quit without saving? ({', '.join(ACTIONS.values())})", type=click.Choice(choices, case_sensitive=False), default="save", show_choices=False)
     except click.Abort:
         return "quit"
+    return ACTIONS[answer[0].lower()]
 
 @typechecked
 def train(p: MLP, table: list[dict[str, list[float]]], n: int = 100000) -> bool:
