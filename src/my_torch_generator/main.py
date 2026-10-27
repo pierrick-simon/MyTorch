@@ -1,7 +1,10 @@
 from typeguard import typechecked
 from sys import argv
 from os import path
-from src.my_torch import MLP
+from src.my_torch.MLP import MLP
+from src.my_torch.activationFunctions.sigmoid import AFSigmoid
+from src.my_torch_generator.parse_yml import parse_yml, conftype
+from datetime import datetime
 
 HELP_PATH = "src/my_torch_generator/help.txt"
 
@@ -11,7 +14,7 @@ def checkParam() -> int | None:
         print(open(HELP_PATH, "r").read())
         return 84
     for i in range(1, len(argv), 2):
-        if not argv[i].endswith(".conf"):
+        if not argv[i].endswith(".yml"):
             print(f"my_torch_generator: cannot access {argv[i]}: Should be a .yml file")
             return 84
         if not path.exists(argv[i]):
@@ -19,14 +22,15 @@ def checkParam() -> int | None:
             return 84
 
 @typechecked
-def generateNeuralNetwork(confPath: str) -> None:
-    print(f"Generated nn with {confPath} config file.")
+def generateNeuralNetwork(data: conftype, path: str) -> None:
+    MLP(data["nbInputs"], data["hiderLayersLayout"], data["nbOutputs"], data["learningRate"], AFSigmoid, datetime.now().timestamp()).save(path)
 
 @typechecked
 def generateNeuralNetworks() -> None:
     for i in range(1, len(argv), 2):
-        for _ in range(int(argv[i + 1])):
-            generateNeuralNetwork(argv[i])
+        data = parse_yml(argv[i])
+        for j in range(int(argv[i + 1])):
+            generateNeuralNetwork(data, argv[i].replace(".yml", "") + f"_{j + 1}.nn")
 
 @typechecked
 def main() -> int:

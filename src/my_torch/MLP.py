@@ -3,10 +3,11 @@ import random as rand
 import pickle
 from collections.abc import Callable
 from typeguard import typechecked
+import click
 
 class MLP:
     @typechecked
-    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationFunc: Callable, seed: int = 67):
+    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationFunc: Callable, seed: int | float = 67):
         rand.seed(seed)
         self.seed = seed
         self.nbInputs = nbInputs
@@ -83,8 +84,12 @@ class MLP:
 
     @typechecked
     def save(self, path: str):
-        print(f"Successfully saved model \'{path}.nn\'.")
-        pickle.dump(self, open(path + ".nn", "wb"))
+        if not path.endswith(".nn"):
+            print("my_torch: Warning: you should save with .nn file extention")
+        if not click.confirm(f"Do you want to overwrite {path} ?"):
+            return
+        pickle.dump(self, open(path, "wb"))
+        print(f"Successfully saved model \'{path}\'.")
 
     @typechecked
     def load(path: str) -> MLP:
