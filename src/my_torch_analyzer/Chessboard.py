@@ -66,10 +66,16 @@ STATE_LABELS = {
     "checkmate white": State.CHECK,
     "checkmate black": State.CHECK,
 }
+
 @typechecked
 def getState(state: str) -> State:
     return STATE_LABELS[state.lower()]
-    
+
+@typechecked
+def getStateStr(output: list[float]) -> str:
+    if output[State.NOTHING.value] == 1:
+        return "Nothing"
+    return "Check"
 
 class Chessboard:
     @typechecked

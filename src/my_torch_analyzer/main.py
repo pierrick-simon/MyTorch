@@ -6,6 +6,7 @@ from typeguard import typechecked
 from src.my_torch_analyzer.fen_parser import fen_parser
 from src.my_torch.MLP import MLP
 from src.my_torch_analyzer.train import train
+from src.my_torch_analyzer.predict import predict
 
 HELP_PATH = "src/my_torch_analyzer/help.txt"
 
@@ -50,7 +51,7 @@ def main() -> int:
             train(data, mlp)
             mlp.save(save_path)
         else:
-            pass
+            predict(data, mlp)
     except (ValueError, OSError) as e:
         print("my_torch_analyzer:", e, file=sys.stderr)
         return 84
