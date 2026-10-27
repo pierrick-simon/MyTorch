@@ -1,15 +1,56 @@
 import argparse
+import sys
+
+from typeguard import typechecked
 
 from src.my_torch_analyzer.fen_parser import fen_parser
+from src.my_torch.MLP import MLP
+
+HELP_PATH = "src/my_torch_analyzer/help.txt"
+
+class ArgParser(argparse.ArgumentParser):
+    def error(self, message: str):
+        print(f"my_torch_analyzer: {message}", file=sys.stderr)
+        sys.exit(84)
+
+@typechecked
+def build_parser() -> ArgParser:
+    p = ArgParser(add_help=False)
+    mode = p.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--predict", action="store_true")
+    mode.add_argument("--train", action="store_true")
+    p.add_argument("--save", metavar="SAVEFILE", type=str, default=None)
+    p.add_argument("LOADFILE", type=str)
+    p.add_argument("CHESSFILE", type=str)
+    return p
 
 
+@typechecked
 def main() -> int:
-    p = argparse.ArgumentParser()
-    p.add_argument("CHESSFILE", type=str, help="File containing chessboards")
-    args = p.parse_args()
-    try:
-        fen_parser(args.CHESSFILE)
-    except ValueError as e:
-        print("my_torch_analyser: ", e)
+    argv = sys.argv[1:]
+
+    if "--help" in argv or "-h" in argv:
+        print(open(HELP_PATH, "r").read())
+        return 0
+
+    args = build_parser().parse_args(argv)
+
+    if args.save != None and args.train:
+        print("my_torch_analyzer: --save only works in train mode", file=sys.stderr)
         return 84
+
+    try:
+        data = fen_parser(args.CHESSFILE)
+        mlp = MLP.load(args.LOADFILE)
+        if args.train:
+            if any(result is None for _, result in data):
+                raise ValueError("training mode requires an expected output on every line")
+            save_path = args.save or args.LOADFILE
+            pass
+        else:
+            pass
+    except (ValueError, OSError) as e:
+        print("my_torch_analyzer:", e, file=sys.stderr)
+        return 84
+
     return 0
