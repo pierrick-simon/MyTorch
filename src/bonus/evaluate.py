@@ -1,18 +1,9 @@
-#!/usr/bin/env python3
-
-from my_torch.MLP import MLP
-from bonus.tables.xor.truthTables import *
+from src.my_torch.MLP import MLP
 import random as rand
-from sys import argv
 from typeguard import typechecked
 
-if len(argv) > 2:
-    exit(84)
-
-p = MLP.load(argv[1])
-
 @typechecked
-def evaluate(n: int, table: list[dict[str, list[float]]], threshold: float):
+def evaluate(p: MLP, table: list[dict[str, list[float]]], n: int = 1000, threshold: float = 0.1) -> None:
     rand.seed(p.seed ** 2)
     accuracy = 0
     nbOutput = len(table[0]["expectedOutputs"])
@@ -22,6 +13,3 @@ def evaluate(n: int, table: list[dict[str, list[float]]], threshold: float):
         for o, e in zip(output, table[case]["expectedOutputs"], strict=True):
             accuracy += (abs(o - e) < threshold) / (n * nbOutput)
     print(f"Accuracy is {accuracy * 100.0:.1f}% over {n} iterations.")
-
-evaluate(1000, truthTableXor, 0.1)
-

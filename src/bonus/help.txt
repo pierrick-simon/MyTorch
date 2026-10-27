@@ -4,5 +4,5 @@ USAGE
 DESCRIPTION
     --learn     Train the neural network FILE on TASK and save it.
     --evaluate  Evaluate the neural network FILE on TASK.
-    TASK        Name of a bonus task (directory in src/bonus/), e.g. xor.
+    TASK        Name of a truth table: and, xor.
     FILE        Neural network file (.nn).
