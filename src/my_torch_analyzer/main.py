@@ -5,6 +5,7 @@ from typeguard import typechecked
 
 from src.my_torch_analyzer.fen_parser import fen_parser
 from src.my_torch.MLP import MLP
+from src.my_torch_analyzer.train import train
 
 HELP_PATH = "src/my_torch_analyzer/help.txt"
 
@@ -35,18 +36,19 @@ def main() -> int:
 
     args = build_parser().parse_args(argv)
 
-    if args.save != None and args.train:
+    if args.save is not None and not args.train:
         print("my_torch_analyzer: --save only works in train mode", file=sys.stderr)
         return 84
 
     try:
         data = fen_parser(args.CHESSFILE)
-        mlp = MLP.load(args.LOADFILE)
+        mlp: MLP = MLP.load(args.LOADFILE)
         if args.train:
-            if any(result is None for _, result in data):
+            if any(not chessboard.hasState() for chessboard in data):
                 raise ValueError("training mode requires an expected output on every line")
             save_path = args.save or args.LOADFILE
-            pass
+            train(data, mlp)
+            mlp.save(save_path)
         else:
             pass
     except (ValueError, OSError) as e:
