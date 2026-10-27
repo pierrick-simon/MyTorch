@@ -5,8 +5,9 @@ from itertools import product
 from typeguard import typechecked
 
 TABLE = [
-    {"inputs": list(bits), "expectedOutputs": [sum(a != b for a, b in zip(bits[:3], bits[3:]))]}
+    {"inputs": list(bits), "expectedOutputs": [float(d == k) for k in range(4)]}
     for bits in product([0, 1], repeat=6)
+    for d in [sum(a != b for a, b in zip(bits[:3], bits[3:]))]
 ]
 
 @typechecked

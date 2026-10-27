@@ -2,7 +2,7 @@ from typeguard import typechecked
 from sys import argv
 from os import path
 from src.my_torch.MLP import MLP
-from src.my_torch.activationFunctions.sigmoid import AFSigmoid
+from src.my_torch.activationClass.sigmoid import Sigmoid
 from src.my_torch_generator.parse_yml import parse_yml, conftype
 from datetime import datetime
 
@@ -23,7 +23,7 @@ def checkParam() -> int | None:
 
 @typechecked
 def generateNeuralNetwork(data: conftype, path: str) -> None:
-    MLP(data["nbInputs"], data["hiderLayersLayout"], data["nbOutputs"], data["learningRate"], AFSigmoid, datetime.now().timestamp()).save(path)
+    MLP(data["nbInputs"], data["hiderLayersLayout"], data["nbOutputs"], data["learningRate"], Sigmoid, datetime.now().timestamp()).save(path)
 
 @typechecked
 def generateNeuralNetworks() -> None:
