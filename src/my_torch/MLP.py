@@ -4,7 +4,7 @@ import pickle
 from typeguard import typechecked
 import click
 from .activationClass.sigmoid import Sigmoid
-from os import path
+from os.path import exists
 
 class MLP:
     @typechecked
@@ -88,7 +88,7 @@ class MLP:
     def save(self, path: str, forceOverwrite: bool = False):
         if not path.endswith(".nn"):
             print("my_torch: Warning: you should save with .nn file extention")
-        if forceOverwrite or not path.exists(path) or click.confirm(f"Do you want to overwrite {path} ?"):
+        if forceOverwrite or not exists(path) or click.confirm(f"Do you want to overwrite {path} ?"):
             pickle.dump(self, open(path, "wb"))
             print(f"Successfully saved model \'{path}\'.")
 
