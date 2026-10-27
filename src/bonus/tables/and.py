@@ -11,9 +11,9 @@ TABLE = [
 ]
 
 @typechecked
-def train(p: MLP) -> None:
-    genericTrain(p, TABLE)
+def train(p: MLP, n: int) -> bool:
+    return genericTrain(p, TABLE, n)
 
 @typechecked
-def evaluate(p: MLP) -> None:
-    genericEvaluate(p, TABLE)
+def evaluate(p: MLP, n: int) -> None:
+    genericEvaluate(p, TABLE, n)

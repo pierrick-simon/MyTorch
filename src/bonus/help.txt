@@ -1,8 +1,9 @@
 USAGE
-    ./my_torch_bonus [--learn | --evaluate] TASK FILE
+    ./my_torch_bonus [--train | --eval] TASK FILE [--iteration N]
 
 DESCRIPTION
-    --learn     Train the neural network FILE on TASK and save it.
-    --evaluate  Evaluate the neural network FILE on TASK.
-    TASK        Name of a truth table: and, xor.
+    --train     Train the neural network FILE on TASK and save it.
+    --eval      Evaluate the neural network FILE on TASK.
+    TASK        Name of a truth table: and, xor, hamming.
     FILE        Neural network file (.nn).
+    --iteration Number of iterations N (default: 100000 for --train, 1000 for --eval).
