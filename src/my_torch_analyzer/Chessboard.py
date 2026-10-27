@@ -79,7 +79,7 @@ def getStateStr(output: list[float]) -> str:
 
 class Chessboard:
     @typechecked
-    def __init__(self, fen: str, state: str = ""):
+    def __init__(self, fen: str, state: str | None):
         self.squares: list[Square] = []
         parts = fen.split()
         for letter in parts[Fen.PLACEMENT.value]:
@@ -102,7 +102,7 @@ class Chessboard:
         self.extra.append(min(int(parts[Fen.FULLMOVE.value]), 200) / 200)
         self.state = [0, 0]
         self.has_state = False
-        if (state != ""):
+        if (state != None):
             self.state[getState(state).value] = 1
             self.has_state = True
 
