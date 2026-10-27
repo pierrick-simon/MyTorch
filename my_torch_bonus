@@ -1,0 +1,6 @@
+#!.venv/bin/python
+
+import src.bonus.main as main
+
+if __name__ == "__main__":
+    exit(main.main())

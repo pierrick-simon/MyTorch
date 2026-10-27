@@ -83,15 +83,14 @@ class MLP:
                 p.learn(errorUnits[len(errorUnits) - 1 - i][j])
 
     @typechecked
-    def save(self, path: str):
+    def save(self, path: str, forceOverwrite: bool = False):
         if not path.endswith(".nn"):
             print("my_torch: Warning: you should save with .nn file extention")
-        if not click.confirm(f"Do you want to overwrite {path} ?"):
-            return
-        pickle.dump(self, open(path, "wb"))
-        print(f"Successfully saved model \'{path}\'.")
+        if forceOverwrite or click.confirm(f"Do you want to overwrite {path} ?"):
+            pickle.dump(self, open(path, "wb"))
+            print(f"Successfully saved model \'{path}\'.")
 
     @typechecked
     def load(path: str) -> MLP:
-        print(f"Successfully loaded model \'{path}.nn\'.")
-        return pickle.load(open(path + ".nn", "rb"))
+        print(f"Successfully loaded model \'{path}\'.")
+        return pickle.load(open(path, "rb"))
