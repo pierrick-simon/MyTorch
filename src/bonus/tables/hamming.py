@@ -1,8 +1,10 @@
-from src.my_torch.MLP import MLP
-from src.bonus.train import train as genericTrain
-from src.bonus.evaluate import evaluate as genericEvaluate
 from itertools import product
+
 from typeguard import typechecked
+
+from src.bonus.evaluate import evaluate as genericEvaluate
+from src.bonus.train import train as genericTrain
+from src.my_torch.MLP import MLP
 
 TABLE = [
     {"inputs": list(bits), "expectedOutputs": [float(d == k) for k in range(4)]}

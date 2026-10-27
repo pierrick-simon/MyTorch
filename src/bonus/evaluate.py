@@ -1,6 +1,9 @@
-from src.my_torch.MLP import MLP
 import random as rand
+
 from typeguard import typechecked
+
+from src.my_torch.MLP import MLP
+
 
 @typechecked
 def evaluate(p: MLP, table: list[dict[str, list[float]]], n: int = 1000, threshold: float = 0.1) -> None:

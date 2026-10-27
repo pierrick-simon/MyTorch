@@ -1,6 +1,6 @@
 # Define the __all__ variable
-__all__ = ["MLP", "Sigmoid", "Linear", "ReLU", "LeakyReLU", "Tanh"]
+__all__ = ["MLP", "ActivationClass", "ActivationClassNames", "LeakyReLU", "Linear", "ReLU", "Sigmoid", "Tanh"]
 
 # Import the submodules
 from . import MLP
-from .activationClass import *
+from .activationClasses import *

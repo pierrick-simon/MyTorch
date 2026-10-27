@@ -1,5 +1,5 @@
-from typeguard import typechecked
 import yaml
+from typeguard import typechecked
 
 conf = {
     "nbInputs": int,
@@ -22,7 +22,7 @@ def check_config(data: conftype, configPath: str) -> None:
         check_label(data, key, configPath)
         value(data[key])
         data_dup.pop(key)
-    for key, _ in data_dup.items():
+    for key in data_dup:
         print(f"my_torch generator: Warning: unessesary labels \'{key}\' in {configPath}")
         data.pop(key)
 

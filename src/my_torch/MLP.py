@@ -1,14 +1,18 @@
-from .perceptron import Perceptron
-import random as rand
+# ruff: noqa: N999 - module name kept so pickled .nn files still load
 import pickle
-from typeguard import typechecked
-import click
-from .activationClass.sigmoid import Sigmoid
+import random as rand
 from os.path import exists
+
+import click
+from typeguard import typechecked
+
+from .activationClasses import *
+from .perceptron import Perceptron
+
 
 class MLP:
     @typechecked
-    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClass: type[Sigmoid], seed: int | float = 67):
+    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClass: ActivationClass, seed: float = 67):
         rand.seed(seed)
         self.seed = seed
         self.nbInputs = nbInputs
@@ -74,7 +78,7 @@ class MLP:
                     lw = [lp.weights[j] for lp in lastPerceptrons]
                     for e, w in zip(lastErrors, lw, strict=True):
                         sum += e * w
-                    errorUnit = p.lastOutput * (1 - p.lastOutput) * sum
+                    errorUnit = self.activationClass.derivation(p.lastOutput) * sum
                 errorUnits[i].append(errorUnit)
 
                 errors.append(errorUnit)
@@ -89,10 +93,12 @@ class MLP:
         if not path.endswith(".nn"):
             print("my_torch: Warning: you should save with .nn file extention")
         if forceOverwrite or not exists(path) or click.confirm(f"Do you want to overwrite {path} ?"):
-            pickle.dump(self, open(path, "wb"))
+            with open(path, "wb") as f:
+                pickle.dump(self, f)
             print(f"Successfully saved model \'{path}\'.")
 
     @typechecked
-    def load(path: str) -> MLP:
+    def load(path: str) -> "MLP":
         print(f"Successfully loaded model \'{path}\'.")
-        return pickle.load(open(path, "rb"))
+        with open(path, "rb") as f:
+            return pickle.load(f)

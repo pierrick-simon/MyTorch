@@ -1,7 +1,9 @@
-from src.my_torch.MLP import MLP
 import random as rand
-from typeguard import typechecked
+
 import click
+from typeguard import typechecked
+
+from src.my_torch.MLP import MLP
 
 ACTIONS = {"s": "save", "r": "resume", "q": "quit"}
 

@@ -1,10 +1,13 @@
+import math
+
 from typeguard import typechecked
 
-class ReLU:
+
+class Sigmoid:
     @typechecked
     def activation(sum: float, bias: float) -> float:
-        return max(0, sum + bias)
+        return 1 / (1 + math.exp(-sum - bias))
 
     @typechecked
     def derivation(x: float) -> float:
-        return 1 if x > 0 else 0
+        return x * (1 - x)

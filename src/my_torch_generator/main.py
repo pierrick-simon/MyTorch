@@ -1,17 +1,20 @@
-from typeguard import typechecked
-from sys import argv
-from os import path
-from src.my_torch.MLP import MLP
-from src.my_torch.activationClass.sigmoid import Sigmoid
-from src.my_torch_generator.parse_yml import parse_yml, conftype
 from datetime import datetime
+from os import path
+from sys import argv
+
+from typeguard import typechecked
+
+from src.my_torch.activationClasses import Sigmoid
+from src.my_torch.MLP import MLP
+from src.my_torch_generator.parse_yml import conftype, parse_yml
 
 HELP_PATH = "src/my_torch_generator/help.txt"
 
 @typechecked
 def checkParam() -> int | None:
     if len(argv) < 2 or len(argv) % 2 != 1 or sum([int(not argv[i].isdigit()) for i in range(2, len(argv), 2)]) != 0:
-        print(open(HELP_PATH, "r").read())
+        with open(HELP_PATH) as f:
+            print(f.read())
         return 84
     for i in range(1, len(argv), 2):
         if not argv[i].endswith(".yml"):
