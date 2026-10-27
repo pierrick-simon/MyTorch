@@ -1,17 +1,19 @@
 from .perceptron import Perceptron
 import random as rand
 import pickle
-from collections.abc import Callable
 from typeguard import typechecked
 import click
+from .activationClass.sigmoid import Sigmoid
+from os import path
 
 class MLP:
     @typechecked
-    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationFunc: Callable, seed: int | float = 67):
+    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClass: type[Sigmoid], seed: int | float = 67):
         rand.seed(seed)
         self.seed = seed
         self.nbInputs = nbInputs
         self.layers = []
+        self.activationClass = activationClass
         for i in range(len(layers)):
             self.layers.append([])
             if i == 0:
@@ -20,11 +22,11 @@ class MLP:
                 prevLayerSize = layers[i - 1]
             for _ in range(layers[i]):
                 weights = [rand.uniform(-1, 1) for _ in range(prevLayerSize)]
-                self.layers[i].append(Perceptron(weights, learningRate, 0.5, activationFunc))
+                self.layers[i].append(Perceptron(weights, learningRate, 0.5, activationClass.activation))
         self.layers.append([])
         for i in range(nbOutputs):
             weights = [rand.uniform(-1, 1) for _ in range(len(self.layers[-2]))]
-            self.layers[-1].append(Perceptron(weights, learningRate, 0.5, activationFunc))
+            self.layers[-1].append(Perceptron(weights, learningRate, 0.5, activationClass.activation))
 
     @typechecked
     def __str__(self):
@@ -53,7 +55,7 @@ class MLP:
     def learn(self, outputs: list[float], targets: list[float]):
         errors: list[float] = []
         for output, target in zip(outputs, targets, strict=True):
-            outputUnitError = output * (1 - output) * (target - output)
+            outputUnitError = self.activationClass.derivation(output) * (target - output)
             errors.append(outputUnitError)
 
         perceptrons = []
@@ -86,7 +88,7 @@ class MLP:
     def save(self, path: str, forceOverwrite: bool = False):
         if not path.endswith(".nn"):
             print("my_torch: Warning: you should save with .nn file extention")
-        if forceOverwrite or click.confirm(f"Do you want to overwrite {path} ?"):
+        if forceOverwrite or not path.exists(path) or click.confirm(f"Do you want to overwrite {path} ?"):
             pickle.dump(self, open(path, "wb"))
             print(f"Successfully saved model \'{path}\'.")
 
