@@ -4,6 +4,24 @@
 
 By *Ariel Amriou*(ariel.amriou@epitech.eu) & *Pierrick Simon*(pierrick.simon@epitech.eu).
 
+MyTorch is a neural network library written from scratch in pure Python (multi-layer perceptrons trained by backpropagation), with three programs built on it:
+
+| Program              | Role                                                                            |
+|----------------------|---------------------------------------------------------------------------------|
+| `my_torch_generator` | Creates untrained networks (`.nn` files) from YAML configuration files.         |
+| `my_torch_analyzer`  | Trains a network on chess positions, or uses it to tell whether a king is in check. |
+| `my_torch_bonus`     | Trains and evaluates a network on small truth tables (AND, XOR, Hamming distance). |
+
+### Documentation
+
+| Document                                        | Content                                                                 |
+|-------------------------------------------------|-------------------------------------------------------------------------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | Code layout, forward pass, backpropagation, `.nn` file format.          |
+| [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md) | Chess file format, input encoding, dataset, how to train on it.         |
+| [docs/DESIGN_CHOICES.md](docs/DESIGN_CHOICES.md) | Why the project is built this way, and what each choice costs.          |
+| [docs/BENCHMARKS.md](docs/BENCHMARKS.md)         | Speed, accuracy on the truth tables and on chess positions.             |
+| [CONTRIBUTING.md](CONTRIBUTING.md)               | Code style, commits, CI, how to add an activation function or a task.   |
+
 ## Getting Started
 
 ### Prerequisites
@@ -34,6 +52,14 @@ python3.14 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+4. **Extract the chess dataset** (only needed for `my_torch_analyzer`):
+
+```sh
+unzip dataset.zip
+```
+
+The programs use `.venv/bin/python` as interpreter: run them from the root of the repository.
 
 ## Usage
 
@@ -111,6 +137,71 @@ outputActivationFunction: Sigmoid
 | `Linear`    | `x`                          | `]-inf, +inf[` | Output layer of a network that predicts a number (regression). |
 
 The output activation must be able to produce the expected values: a `Sigmoid` output can never reach `2`, so a network that must output a count or any number above 1 needs a `Linear` output.
+
+### Chess analyzer
+
+`my_torch_analyzer` trains a network on chess positions, or uses a trained network to predict whether a king is in check.
+
+```sh
+./my_torch_analyzer [--predict | --train [--save SAVEFILE]] LOADFILE CHESSFILE
+```
+
+- `--train`: train the network `LOADFILE` on every position of `CHESSFILE`, then save it into `SAVEFILE` if given, otherwise back into `LOADFILE`. Every line must have a label.
+- `--predict`: print one prediction per position of `CHESSFILE`: `Nothing` or `Check`.
+- `LOADFILE`: a `.nn` file with **783 inputs** and **2 outputs**.
+- `CHESSFILE`: one position per line, in FEN notation, optionally followed by its label:
+
+```
+8/8/R2k4/4r1p1/8/5K2/5P2/8 b - - 7 59 Check White
+3r1k1r/pp6/2nb2Qp/q2N3N/2B2Pb1/8/PPP3P1/2KR3R b - - 2 27 Nothing
+```
+
+The labels are `Nothing`, `Check White`, `Check Black`, `Checkmate White` and `Checkmate Black`; the network learns `Nothing` against the four others. The program exits with code `84` if an argument is invalid, a file cannot be read or a line is not a legal position. `Ctrl+C` during training stops it and saves the network.
+
+Example, from a shuffled extract of the dataset:
+
+```sh
+cat > chess.yml << 'EOF'
+nbInputs: 783
+nbOutputs: 2
+hiderLayersLayout:
+  - 32
+learningRate: 0.05
+hiddenActivationFunction: Sigmoid
+outputActivationFunction: Sigmoid
+EOF
+cat dataset/*/*.txt | shuf | head -n 20000 > train.txt
+./my_torch_generator chess.yml 1
+./my_torch_analyzer --train --save chess_trained.nn chess_1.nn train.txt
+./my_torch_analyzer --predict chess_trained.nn train.txt
+```
+
+The input encoding, the dataset and training advice are described in [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md).
+
+## Optimized mode (`-O`)
+
+Every function of the project is decorated with `@typechecked` from `typeguard`, which checks the types of the arguments and of the return value at each call. These checks catch mistakes early, but the network calls small functions millions of times, so they make training **9 to 16 times slower**.
+
+Running Python with the `-O` option (the capital letter O, not zero) disables them. Call the virtual environment's Python explicitly, followed by `-O` and the program:
+
+```sh
+.venv/bin/python -O my_torch_analyzer --train chess_1.nn train.txt
+.venv/bin/python -O my_torch_analyzer --predict chess_1.nn test.txt
+.venv/bin/python -O my_torch_bonus --train hamming hamming_1.nn
+.venv/bin/python -O my_torch_generator model.yml 3
+```
+
+- With `-O`, `@typechecked` returns the function unchanged, so the code runs exactly as fast as if the decorators were not there.
+- `-O` also removes `assert` statements. The project has none, so the results are the same in both modes.
+- A type error is no longer reported where it happens, but further down in the computation, or not at all. Use the normal mode (`./my_torch_analyzer ...`) when developing or debugging, and `-O` for long trainings.
+
+| Network         | Training step, normal mode | Training step, `-O` | One pass over the chess dataset, `-O` |
+|-----------------|---------------------------:|--------------------:|--------------------------------------:|
+| 6-8-1           | 0.138 ms                   | 0.011 ms            | —                                     |
+| 783-32-2        | 15.4 ms                    | 1.8 ms              | ≈ 24 min                              |
+| 783-64-32-2     | 32.5 ms                    | 3.7 ms              | ≈ 50 min                              |
+
+See [docs/BENCHMARKS.md](docs/BENCHMARKS.md#cost-of-type-checking) for all the measures.
 
 ## Bonus
 
