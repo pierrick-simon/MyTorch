@@ -8,3 +8,6 @@ tqdm
 # external lib for my_torch_generator the project
 pyyaml
 click
+
+# external lib for the charts of benchmarks/plots.py
+matplotlib

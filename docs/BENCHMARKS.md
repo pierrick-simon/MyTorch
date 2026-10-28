@@ -27,6 +27,12 @@ Unless stated otherwise, benchmarks run with `python -O`, which disables the `ty
 .venv/bin/python -O benchmarks/chess_dataset.py      # about 4 minutes, needs dataset/
 ```
 
+The charts of this document are drawn by `benchmarks/plots.py` from the numbers of its tables, and saved in [`docs/images/`](images/). It needs `matplotlib`; after changing a table, update the numbers at the top of the script and run it again:
+
+```sh
+.venv/bin/python benchmarks/plots.py
+```
+
 ## Speed
 
 Time of one forward pass (`tick`) and of one training step (`tick` then `learn`), for the networks of the truth tables and for chess-sized networks:
@@ -40,6 +46,10 @@ Time of one forward pass (`tick`) and of one training step (`tick` then `learn`)
 | Chess large  | 783-256-64-32-3  | 219,331    | 7.120        | 17.728             | 56        |
 
 The time grows linearly with the number of parameters (about 80 ns per parameter per training step for the chess networks), as expected from loops that visit every weight once forward and once backward.
+
+![Training step time against the number of parameters, log scale](images/speed.png)
+
+The two truth table networks sit above the 80 ns line: with so few weights, the fixed cost of the Python calls (one per neuron) dominates.
 
 What this means for one pass over the 723,019 positions of the chess dataset:
 
@@ -60,6 +70,8 @@ Same measure, with and without the runtime checks of `typeguard`:
 | 783-32-2         | 15.40                         | 1.77                     | × 8.7    |
 | 783-64-32-2      | 32.45                         | 3.75                     | × 8.7    |
 | 783-256-64-32-3  | 138.3                         | 15.5                     | × 8.9    |
+
+![Slowdown caused by typeguard for each network](images/typeguard.png)
 
 `typeguard` checks every argument of every call, including every element of the input lists, and the network makes one call per neuron per sample. The checks catch type errors early during development (see [DESIGN_CHOICES.md](DESIGN_CHOICES.md#runtime-type-checking-with-typeguard)), but for long trainings `-O` should always be used:
 
@@ -105,6 +117,8 @@ Each configuration is trained 5 times, with seeds 1 to 5, on random rows of the 
 | Hamming | 6-16-1 | Sigmoid / Linear    | 0/5   | 5/5    | 5/5    | 5/5     |
 
 Reproduce a column with `.venv/bin/python -O benchmarks/tables.py N`.
+
+![Seeds solved for each configuration after 1,000 to 100,000 iterations](images/convergence.png)
 
 ### What we learn
 
@@ -154,6 +168,8 @@ Networks are trained on a balanced sample of the dataset: 1,000 random positions
 At commit `adc7c32`, `Color.getColor` returns `BLACK` for every piece, so white and black pieces use the same 6 of the 12 values of each square. The "distinguished" rows replace it with the intended function (`WHITE` for upper-case letters) to measure the effect of the fix.
 
 Reproduce the last row with `.venv/bin/python -O benchmarks/chess_dataset.py 10 0.05` (the network sees the samples in another order than in the table above, so the numbers differ slightly).
+
+![Test accuracy and share of test positions predicted as Check after 1, 5 and 10 epochs](images/chess.png)
 
 What we learn:
 
