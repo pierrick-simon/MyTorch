@@ -28,6 +28,21 @@ The program exits with code `84` when the arguments are invalid, when a file can
 
 Pressing `Ctrl+C` during training stops it and saves the network trained so far. Pressing it during prediction stops printing.
 
+### Validation during training
+
+Before training, the analyzer keeps 10 % of `CHESSFILE` aside, at most 500 positions, drawn at random from the seed of the network. These positions are never trained on: they measure how the network does on positions it has not seen.
+
+Every 5,000 training positions, the analyzer computes the accuracy on these positions (the share of positions where the highest output is the expected label) and shows it next to the progress bar, with the best accuracy so far. Each time the best is beaten, the network is saved in `<SAVEFILE without .nn>/best.nn`.
+
+If the accuracy stays below the best for 5 validations in a row, the network is getting worse on new positions, usually because it is over-fitting or its learning rate is too high. The analyzer then asks whether to stop:
+
+- `y` (the default): training stops, and the best network is saved into `SAVEFILE` instead of the last one;
+- `n`: training goes on, and the analyzer asks again after 5 more validations below the best.
+
+When the standard input is not a terminal, the analyzer cannot ask: it prints a warning and goes on. At the end of training, it prints the final and the best validation accuracies, and where the best network is.
+
+These values are constants at the top of [`src/my_torch_analyzer/train.py`](../src/my_torch_analyzer/train.py): `VALIDATION_SIZE`, `VALIDATION_EVERY` and `PATIENCE`. A file of fewer than 10 positions has no validation.
+
 ## Input file format
 
 Each line holds a position in [Forsyth–Edwards Notation](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) (6 fields separated by spaces), optionally followed by the expected label:

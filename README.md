@@ -174,6 +174,8 @@ The output activation must be able to produce the expected values: a `Sigmoid` o
 
 The labels are `Nothing`, `Check White`, `Check Black`, `Checkmate White` and `Checkmate Black`; the network learns `Nothing` against the four others. The program exits with code `84` if an argument is invalid, a file cannot be read or a line is not a legal position. `Ctrl+C` during training stops it and saves the network.
 
+During training, a small share of `CHESSFILE` (at most 500 positions) is kept aside and used to check the network every 5,000 positions. If it gets worse 5 times in a row, the analyzer offers to stop and keep the best network (see [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md#validation-during-training)).
+
 Example, from a shuffled extract of the dataset:
 
 ```sh

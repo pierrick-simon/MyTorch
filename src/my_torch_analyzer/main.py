@@ -50,7 +50,7 @@ def main() -> int:
                 raise ValueError("training mode requires an expected output on every line")
             print("Start Training")
             savePath = args.save or args.LOADFILE
-            train(data, mlp, savePath)
+            mlp = train(data, mlp, savePath)
             mlp.save(savePath, True)
         else:
             predict(data, mlp)
