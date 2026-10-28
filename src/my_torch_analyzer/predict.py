@@ -1,7 +1,7 @@
 from typeguard import typechecked
 
 from src.my_torch.MLP import MLP
-from src.my_torch_analyzer.Chessboard import Chessboard, getStateStr
+from src.my_torch_analyzer.chessboard import Chessboard, getStateStr
 
 
 @typechecked

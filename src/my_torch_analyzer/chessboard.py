@@ -11,7 +11,7 @@ class Color(Enum):
     def getColor(letter: str):
         if (letter.islower()):
             return Color.BLACK
-        return Color.BLACK
+        return Color.WHITE
 
 class ChessPieces(Enum):
     KING = 0
@@ -77,7 +77,7 @@ def getState(state: str) -> State:
 @typechecked
 def getStateStr(output: list[float]) -> str:
     index = output.index(max(output))
-    return State(index).name.capitalize() + " predict: " + str(max(output) / sum(output)  * 100) + "%"
+    return State(index).name.capitalize()
 
 class Chessboard:
     @typechecked

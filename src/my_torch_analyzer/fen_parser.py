@@ -1,7 +1,7 @@
 import chess
 from typeguard import typechecked
 
-from src.my_torch_analyzer.Chessboard import STATE_LABELS, Chessboard
+from src.my_torch_analyzer.chessboard import STATE_LABELS, Chessboard
 
 
 @typechecked

@@ -3,6 +3,7 @@ typeguard
 
 # external lib for my_torch_analyzer project
 chess==1.11.2
+tqdm
 
 # external lib for my_torch_generator the project
 pyyaml
