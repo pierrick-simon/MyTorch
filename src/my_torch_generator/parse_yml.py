@@ -11,6 +11,8 @@ conf = {
     "activationFunction": (str, False),
     "hiddenActivationFunction": (str, False),
     "outputActivationFunction": (str, False),
+    "initialBias": (float, False),
+    "seed": (int, False),
 }
 
 ConfType = dict[str, int | float | str | list[int]]

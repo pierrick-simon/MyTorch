@@ -74,7 +74,7 @@ The programs use `.venv/bin/python` as interpreter: run them from the root of th
 - `config_file_i`: a `.yml` configuration file describing the network to generate.
 - `nb_i`: the number of networks to generate from this configuration file.
 
-Each network is saved next to its configuration file, named after it with a `_N.nn` suffix (starting at 1). Each network gets its own random seed (the current timestamp), so networks generated from the same file start with different weights.
+Each network is saved next to its configuration file, named after it with a `_N.nn` suffix (starting at 1). Each network gets its own random seed (the current timestamp), so networks generated from the same file start with different weights. If the configuration file sets `seed`, network `_N` uses `seed + N - 1` instead: they are still different from each other, but generating them again gives the same networks.
 
 ```sh
 ./my_torch_generator model.yml 3
@@ -96,21 +96,24 @@ learningRate: 0.1
 activationFunction: Sigmoid
 ```
 
-| Key                        | Type        | Required | Description                                                                  |
-|----------------------------|-------------|----------|------------------------------------------------------------------------------|
-| `nbInputs`                 | `int`       | yes      | Number of inputs of the network.                                             |
-| `nbOutputs`                | `int`       | yes      | Number of neurons in the output layer.                                       |
-| `hiderLayersLayout`        | `list[int]` | yes      | Number of neurons in each hidden layer, from first to last.                  |
-| `learningRate`             | `float`     | yes      | Learning rate used when training the network.                                |
-| `activationFunction`       | `str`       | see below | Activation function of every layer.                                         |
-| `hiddenActivationFunction` | `str`       | see below | Activation function of the hidden layers (overrides `activationFunction`).  |
-| `outputActivationFunction` | `str`       | see below | Activation function of the output layer (overrides `activationFunction`).   |
+| Key                        | Type        | Required  | Description                                                                                                      |
+|----------------------------|-------------|-----------|------------------------------------------------------------------------------------------------------------------|
+| `nbInputs`                 | `int`       | yes       | Number of inputs of the network.                                                                                 |
+| `nbOutputs`                | `int`       | yes       | Number of neurons in the output layer.                                                                           |
+| `hiderLayersLayout`        | `list[int]` | yes       | Number of neurons in each hidden layer, from first to last.                                                      |
+| `learningRate`             | `float`     | yes       | Learning rate used when training the network.                                                                    |
+| `activationFunction`       | `str`       | see below | Activation function of every layer.                                                                              |
+| `hiddenActivationFunction` | `str`       | see below | Activation function of the hidden layers (overrides `activationFunction`).                                       |
+| `outputActivationFunction` | `str`       | see below | Activation function of the output layer (overrides `activationFunction`).                                        |
+| `initialBias`              | `float`     | no        | Initial bias of every neuron. Default: `0.5`.                                                                    |
+| `seed`                     | `int`       | no        | Seed of the first generated network; the next ones use `seed + 1`, `seed + 2`... Default: the current timestamp. |
 
 - A missing required key stops the generator with an error.
 - The activation functions must be given in one of these ways, otherwise the generator stops with an error:
   - `activationFunction` alone: every layer uses it;
   - both `hiddenActivationFunction` and `outputActivationFunction`;
   - `activationFunction` plus one of the two others, which overrides it for its layers.
+- `initialBias` and `seed` are optional. Set `seed` to get the same networks every time the generator is run, for example to compare two configurations fairly.
 - Any other key is ignored and reported with a warning.
 
 For example, a network with 64 inputs, two hidden layers of 32 and 16 neurons and 3 outputs, using ReLU in the hidden layers and Sigmoid in the output layer:
@@ -124,6 +127,19 @@ hiderLayersLayout:
 learningRate: 0.05
 hiddenActivationFunction: ReLU
 outputActivationFunction: Sigmoid
+```
+
+The same XOR network as above, using the optional keys to start with zero biases and reproducible weights:
+
+```yaml
+nbInputs: 2
+nbOutputs: 1
+hiderLayersLayout:
+  - 2
+learningRate: 0.1
+activationFunction: Sigmoid
+initialBias: 0
+seed: 42
 ```
 
 ### Activation functions

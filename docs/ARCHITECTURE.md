@@ -82,7 +82,7 @@ A perceptron is one neuron. It stores:
 | Attribute        | Meaning                                                            |
 |------------------|--------------------------------------------------------------------|
 | `weights`        | one weight per input, initialised uniformly in `[-1, 1]`           |
-| `bias`           | initialised to `0.5`                                               |
+| `bias`           | initialised to `initialBias` (`0.5` by default)                    |
 | `lr`             | learning rate, copied from the configuration                       |
 | `activationFunc` | the `activation` function of its activation class                  |
 | `lastInput`      | the inputs of the last `tick`, needed to update the weights        |
@@ -92,12 +92,12 @@ A perceptron is one neuron. It stores:
 
 ### `MLP`
 
-`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed)` builds a list of layers, each layer being a list of `Perceptron`:
+`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed, initialBias)` builds a list of layers, each layer being a list of `Perceptron`:
 
 - one layer per entry of `hiderLayersLayout`, using the hidden activation function;
 - one output layer of `nbOutputs` perceptrons, using the output activation function.
 
-The `seed` is given to Python's `random` module before the weights are drawn, so the same configuration and the same seed always produce the same network. The generator uses the current timestamp as seed, so every generated network is different.
+The `seed` is given to Python's `random` module before the weights are drawn, so the same configuration and the same seed always produce the same network. The generator uses the `seed` of the configuration file plus the index of the copy, or the current timestamp if there is none, so every generated network is different.
 
 ### Activation classes
 
@@ -177,7 +177,7 @@ Because pickle stores classes by their module path, the files only load if the m
 
 1. `checkParam` checks that the arguments come in pairs `config.yml count`, that each file ends with `.yml` and exists, and that each count is a number.
 2. `parse_yml` loads the YAML file and `check_config` validates it: required keys, types, unknown keys (removed with a warning) and activation functions (resolved to their class).
-3. For each requested copy, an `MLP` is built with the timestamp as seed and saved as `<config>_<N>.nn`.
+3. For each requested copy, an `MLP` is built with `seed + N - 1` as seed (the timestamp if `seed` is not set) and saved as `<config>_<N>.nn`.
 
 ### `my_torch_analyzer`
 

@@ -24,16 +24,17 @@ def checkParam() -> int | None:
             return 84
 
 @typechecked
-def generateNeuralNetwork(data: ConfType, path: str) -> None:
+def generateNeuralNetwork(data: ConfType, path: str, index: int) -> None:
     activations = (data["hiddenActivationFunction"], data["outputActivationFunction"])
-    MLP(data["nbInputs"], data["hiderLayersLayout"], data["nbOutputs"], data["learningRate"], activations, datetime.now().timestamp()).save(path)
+    seed = data["seed"] + index if "seed" in data else datetime.now().timestamp()
+    MLP(data["nbInputs"], data["hiderLayersLayout"], data["nbOutputs"], data["learningRate"], activations, seed, data.get("initialBias", 0.5)).save(path)
 
 @typechecked
 def generateNeuralNetworks() -> None:
     for i in range(1, len(argv), 2):
         data = parse_yml(argv[i])
         for j in range(int(argv[i + 1])):
-            generateNeuralNetwork(data, argv[i].replace(".yml", "") + f"_{j + 1}.nn")
+            generateNeuralNetwork(data, argv[i].replace(".yml", "") + f"_{j + 1}.nn", j)
 
 @typechecked
 def main() -> int:

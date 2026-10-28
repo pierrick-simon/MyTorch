@@ -62,7 +62,7 @@ A single function for the whole network would force a bad compromise in one of t
 
 ## Weight initialisation
 
-**Choice.** Weights are drawn uniformly in `[-1, 1]`, biases start at `0.5`.
+**Choice.** Weights are drawn uniformly in `[-1, 1]`, biases start at `0.5` unless the configuration file sets `initialBias`.
 
 **Why.** It is the simplest initialisation that breaks the symmetry between neurons, and it works well for the small networks of the truth tables.
 
@@ -70,9 +70,9 @@ A single function for the whole network would force a bad compromise in one of t
 
 ## Seeds
 
-**Choice.** The generator gives each network the current timestamp as seed. The seed is saved inside the `.nn` file.
+**Choice.** The generator gives each network the current timestamp as seed, or `seed + N - 1` for copy `N` when the configuration file sets `seed`. The seed is saved inside the `.nn` file.
 
-**Why.** Several networks generated from the same configuration start with different weights, so one can generate a few and keep the best. Since the seed is saved, the same network can be rebuilt, and `my_torch_bonus --eval` uses it to draw the same test cases every time for a given network, so two evaluations of the same file give the same score.
+**Why.** Several networks generated from the same configuration start with different weights, so one can generate a few and keep the best. Since the seed is saved, the same network can be rebuilt, and `my_torch_bonus --eval` uses it to draw the same test cases every time for a given network, so two evaluations of the same file give the same score. Setting `seed` in the configuration file makes a whole run reproducible, which is what comparisons between configurations need.
 
 ## YAML configuration files
 
