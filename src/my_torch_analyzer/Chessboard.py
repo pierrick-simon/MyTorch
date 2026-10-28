@@ -73,9 +73,8 @@ def getState(state: str) -> State:
 
 @typechecked
 def getStateStr(output: list[float]) -> str:
-    if output[State.NOTHING.value] == 1:
-        return "Nothing"
-    return "Check"
+    index = output.index(max(output))
+    return State(index).name.capitalize()
 
 class Chessboard:
     @typechecked

@@ -8,7 +8,6 @@ def predict(data: list[Chessboard], mlp: MLP):
     try:
         for chessboard in data:
             output = mlp.tick(chessboard.getInput())
-            print(output)
             print(getStateStr(output))
     except KeyboardInterrupt:
         pass
