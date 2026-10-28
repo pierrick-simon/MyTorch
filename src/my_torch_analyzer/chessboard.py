@@ -11,7 +11,7 @@ class Color(Enum):
     def getColor(letter: str):
         if (letter.islower()):
             return Color.BLACK
-        return Color.BLACK
+        return Color.WHITE
 
 class ChessPieces(Enum):
     KING = 0
@@ -60,13 +60,14 @@ class Square:
 class State(Enum):
     NOTHING = 0
     CHECK = 1
+    CHECKMATE = 2
 
 STATE_LABELS = {
     "nothing": State.NOTHING,
     "check white": State.CHECK,
     "check black": State.CHECK,
-    "checkmate white": State.CHECK,
-    "checkmate black": State.CHECK,
+    "checkmate white": State.CHECKMATE,
+    "checkmate black": State.CHECKMATE,
 }
 
 @typechecked
@@ -101,7 +102,7 @@ class Chessboard:
             self.extra.append(1.0 if passant.startswith(file) else 0.0)
         self.extra.append(min(int(parts[Fen.HALFMOVE.value]), 100) / 100)
         self.extra.append(min(int(parts[Fen.FULLMOVE.value]), 200) / 200)
-        self.state = [0, 0]
+        self.state = [0, 0, 0]
         self.has_state = False
         if (state != None):
             self.state[getState(state).value] = 1

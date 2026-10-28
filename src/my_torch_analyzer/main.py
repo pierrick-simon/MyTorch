@@ -49,9 +49,9 @@ def main() -> int:
             if any(not chessboard.hasState() for chessboard in data):
                 raise ValueError("training mode requires an expected output on every line")
             print("Start Training")
-            save_path = args.save or args.LOADFILE
-            train(data, mlp)
-            mlp.save(save_path, True)
+            savePath = args.save or args.LOADFILE
+            train(data, mlp, savePath)
+            mlp.save(savePath, True)
         else:
             predict(data, mlp)
     except (ValueError, OSError) as e:
