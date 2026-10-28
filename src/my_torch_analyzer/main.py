@@ -34,7 +34,7 @@ def main() -> int:
     if "--help" in argv or "-h" in argv:
         with open(HELP_PATH) as f:
             print(f.read())
-    return 0
+        return 0
 
     args = build_parser().parse_args(argv)
 
