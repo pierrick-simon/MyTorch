@@ -100,7 +100,8 @@ class MLP:
                 print(f"Successfully saved model \'{path}\'.")
 
     @typechecked
-    def load(path: str) -> "MLP":
-        print(f"Successfully loaded model \'{path}\'.")
+    def load(path: str, printResult: bool = True) -> "MLP":
+        if printResult:
+            print(f"Successfully loaded model \'{path}\'.")
         with open(path, "rb") as f:
             return pickle.load(f)
