@@ -1,11 +1,13 @@
-from typeguard import typechecked
 import math
 
-class Sigmoid:
+from typeguard import typechecked
+
+
+class Tanh:
     @typechecked
     def activation(sum: float, bias: float) -> float:
-        return 1 / (1 + math.exp(-sum - bias))
+        return math.tanh(sum + bias)
 
     @typechecked
     def derivation(x: float) -> float:
-        return x * (1 - x)
+        return 1 - x ** 2

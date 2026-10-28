@@ -1,5 +1,7 @@
 from collections.abc import Callable
+
 from typeguard import typechecked
+
 
 class Perceptron:
     @typechecked
@@ -22,7 +24,7 @@ class Perceptron:
         sum: float = 0
         for i in range(len(inputs)):
             sum += inputs[i] * self.weights[i]
-        self.lastOutput = max(0, min(self.activationFunc(sum, self.bias), 1))
+        self.lastOutput = self.activationFunc(sum, self.bias)
         return self.lastOutput
 
     @typechecked

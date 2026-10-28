@@ -1,5 +1,6 @@
 from typeguard import typechecked
 
+
 class LeakyReLU:
     @typechecked
     def activation(sum: float, bias: float) -> float:

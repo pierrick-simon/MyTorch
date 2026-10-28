@@ -37,6 +37,7 @@ def parse_line(line: str, check_consistency: bool = False):
 @typechecked
 def fen_parser(filename: str) -> list[Chessboard]:
     data = []
-    for line in open(filename):
-        data.append(parse_line(line))
+    with open(filename) as f:
+        for line in f:
+            data.append(parse_line(line))
     return data

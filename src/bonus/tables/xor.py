@@ -1,7 +1,8 @@
-from src.my_torch.MLP import MLP
-from src.bonus.train import train as genericTrain
-from src.bonus.evaluate import evaluate as genericEvaluate
 from typeguard import typechecked
+
+from src.bonus.evaluate import evaluate as genericEvaluate
+from src.bonus.train import train as genericTrain
+from src.my_torch.MLP import MLP
 
 TABLE = [
     {"inputs": [1, 1], "expectedOutputs": [0]},
