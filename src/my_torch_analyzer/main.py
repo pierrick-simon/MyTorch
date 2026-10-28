@@ -44,7 +44,7 @@ def main() -> int:
 
     try:
         data = fen_parser(args.CHESSFILE)
-        mlp: MLP = MLP.load(args.LOADFILE)
+        mlp: MLP = MLP.load(args.LOADFILE, False)
         if args.train:
             if any(not chessboard.hasState() for chessboard in data):
                 raise ValueError("training mode requires an expected output on every line")
