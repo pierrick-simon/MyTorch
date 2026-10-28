@@ -7,9 +7,8 @@ from src.bonus.train import train as genericTrain
 from src.my_torch.MLP import MLP
 
 TABLE = [
-    {"inputs": list(bits), "expectedOutputs": [float(d == k) for k in range(4)]}
+    {"inputs": list(bits), "expectedOutputs": [float(sum(a != b for a, b in zip(bits[:3], bits[3:])))]}
     for bits in product([0, 1], repeat=6)
-    for d in [sum(a != b for a, b in zip(bits[:3], bits[3:]))]
 ]
 
 @typechecked

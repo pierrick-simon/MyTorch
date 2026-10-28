@@ -4,9 +4,8 @@ from sys import argv
 
 from typeguard import typechecked
 
-from src.my_torch.activationClasses import Sigmoid
 from src.my_torch.MLP import MLP
-from src.my_torch_generator.parse_yml import conftype, parse_yml
+from src.my_torch_generator.parse_yml import ConfType, parse_yml
 
 HELP_PATH = "src/my_torch_generator/help.txt"
 
@@ -25,8 +24,9 @@ def checkParam() -> int | None:
             return 84
 
 @typechecked
-def generateNeuralNetwork(data: conftype, path: str) -> None:
-    MLP(data["nbInputs"], data["hiderLayersLayout"], data["nbOutputs"], data["learningRate"], Sigmoid, datetime.now().timestamp()).save(path)
+def generateNeuralNetwork(data: ConfType, path: str) -> None:
+    activations = (data["hiddenActivationFunction"], data["outputActivationFunction"])
+    MLP(data["nbInputs"], data["hiderLayersLayout"], data["nbOutputs"], data["learningRate"], activations, datetime.now().timestamp()).save(path)
 
 @typechecked
 def generateNeuralNetworks() -> None:
