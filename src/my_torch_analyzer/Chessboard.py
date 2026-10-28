@@ -1,5 +1,7 @@
-from typeguard import typechecked
 from enum import Enum
+
+from typeguard import typechecked
+
 
 class Color(Enum):
     BLACK = 0

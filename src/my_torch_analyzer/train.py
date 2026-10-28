@@ -3,6 +3,7 @@ from typeguard import typechecked
 from src.my_torch.MLP import MLP
 from src.my_torch_analyzer.Chessboard import Chessboard
 
+
 @typechecked
 def train(data: list[Chessboard], mlp: MLP):
     i = 0

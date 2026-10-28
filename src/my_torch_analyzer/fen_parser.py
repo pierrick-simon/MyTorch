@@ -1,8 +1,9 @@
 import chess
 from typeguard import typechecked
 
-from src.my_torch_analyzer.Chessboard import Chessboard, STATE_LABELS
-    
+from src.my_torch_analyzer.Chessboard import STATE_LABELS, Chessboard
+
+
 @typechecked
 def expected_label(board: chess.Board) -> str:
     """Label of a position (colour = side giving the check)."""

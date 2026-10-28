@@ -3,10 +3,10 @@ import sys
 
 from typeguard import typechecked
 
-from src.my_torch_analyzer.fen_parser import fen_parser
 from src.my_torch.MLP import MLP
-from src.my_torch_analyzer.train import train
+from src.my_torch_analyzer.fen_parser import fen_parser
 from src.my_torch_analyzer.predict import predict
+from src.my_torch_analyzer.train import train
 
 HELP_PATH = "src/my_torch_analyzer/help.txt"
 
@@ -32,8 +32,9 @@ def main() -> int:
     argv = sys.argv[1:]
 
     if "--help" in argv or "-h" in argv:
-        print(open(HELP_PATH, "r").read())
-        return 0
+        with open(HELP_PATH) as f:
+            print(f.read())
+    return 0
 
     args = build_parser().parse_args(argv)
 
