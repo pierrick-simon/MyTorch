@@ -1,8 +1,10 @@
 import chess
+from typeguard import typechecked
 
-LABELS = {"Nothing", "Check White", "Check Black", "Checkmate White", "Checkmate Black"}
+from src.my_torch_analyzer.Chessboard import STATE_LABELS, Chessboard
 
 
+@typechecked
 def expected_label(board: chess.Board) -> str:
     """Label of a position (colour = side giving the check)."""
     if not board.is_check():
@@ -10,7 +12,7 @@ def expected_label(board: chess.Board) -> str:
     attacker = "White" if board.turn == chess.BLACK else "Black"
     return f"{'Checkmate' if board.is_checkmate() else 'Check'} {attacker}"
 
-
+@typechecked
 def parse_line(line: str, check_consistency: bool = False):
     """Validate one dataset line and return (fen, result)."""
     line = line.strip()
@@ -26,15 +28,15 @@ def parse_line(line: str, check_consistency: bool = False):
         raise ValueError(f"Illegal position: {fen!r}")
 
     if result is not None:
-        if result not in LABELS:
-            raise ValueError(f"Unknown result {result!r}, expected one of {sorted(LABELS)}")
+        if STATE_LABELS.get(result.lower()) is None:
+            raise ValueError(f"Unknown result {result!r}, expected one of {sorted(STATE_LABELS)}")
         if check_consistency and result != expected_label(board):
             raise ValueError(f"Result {result!r} does not match position (is {expected_label(board)!r})")
 
-    return fen, result
+    return Chessboard(fen, result)
 
-
-def fen_parser(filename: str):
+@typechecked
+def fen_parser(filename: str) -> list[Chessboard]:
     data = []
     with open(filename) as f:
         for line in f:
