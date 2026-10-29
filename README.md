@@ -53,11 +53,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. **Extract the chess dataset** (only needed for `my_torch_analyzer`):
+4. **Build a chess training file** (only needed for `my_torch_analyzer`):
 
 ```sh
-unzip dataset.zip
+./dataset.sh 2000
 ```
+
+`dataset.sh` extracts `dataset.zip` into `dataset/` if needed (see below).
 
 The programs use `.venv/bin/python` as interpreter: run them from the root of the repository.
 
@@ -194,11 +196,22 @@ outputActivationFunction: Sigmoid
 patience: 5
 validationInterval: 1000
 EOF
-cat dataset/*/*.txt | shuf | head -n 20000 > train.txt
+./dataset.sh 2000 train.txt
 ./my_torch_generator chess.yml 1
 ./my_torch_analyzer --train --save chess_trained.nn chess_1.nn train.txt
 ./my_torch_analyzer --predict chess_trained.nn train.txt
 ```
+
+`dataset.sh` builds a shuffled training file from the dataset:
+
+```sh
+./dataset.sh NB [OUTPUT_FILE]
+```
+
+- `NB`: number of positions picked at random from **each** of the 9 files of `dataset/` (3 labels × 3 piece counts), so the output holds `9 × NB` positions with the labels balanced. A file with fewer than `NB` lines is taken whole, with a warning.
+- `OUTPUT_FILE`: the file to write. Default: `train.txt`.
+- If `dataset/` does not exist, the script extracts `dataset.zip` first.
+- The positions are shuffled, since the analyzer trains in file order.
 
 The input encoding, the dataset and training advice are described in [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md).
 
