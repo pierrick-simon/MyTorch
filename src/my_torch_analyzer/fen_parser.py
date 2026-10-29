@@ -23,7 +23,7 @@ def parse_line(line: str, check_consistency: bool = False):
     fen = " ".join(parts[:6])
     result = " ".join(parts[6:]) or None
 
-    board = chess.Board(fen)
+    board = chess.Board(fen, chess960=True)
     if not board.is_valid():
         raise ValueError(f"Illegal position: {fen!r}")
 
