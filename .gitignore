@@ -5,3 +5,4 @@ dataset/
 *.nn
 *.yml
 train.txt
+test.txt
