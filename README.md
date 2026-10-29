@@ -119,6 +119,7 @@ activationFunction: Sigmoid
   - both `hiddenActivationFunction` and `outputActivationFunction`;
   - `activationFunction` plus one of the two others, which overrides it for its layers.
 - `initialBias` and `seed` are optional. Set `seed` to get the same networks every time the generator is run, for example to compare two configurations fairly.
+- `momentum` is optional and must be between `0` (included) and `1` (excluded), otherwise the generator stops with an error. Each weight update becomes `Δw ← learningRate × error × input + momentum × Δw (previous)`: a share of the previous update is kept, which smooths the noise of online training and speeds it up along directions where the gradient stays the same. The bias has no momentum. With a high momentum (e.g. `0.9`), the steps are about `1 / (1 - momentum)` times larger, so the learning rate may need to be lowered.
 - `validationInterval` without `patience` is ignored and reported with a warning.
 - Any other key is ignored and reported with a warning.
 
@@ -146,6 +147,41 @@ learningRate: 0.1
 activationFunction: Sigmoid
 initialBias: 0
 seed: 42
+```
+
+A complete configuration using every key, with one `activationFunction` for every layer:
+
+```yaml
+nbInputs: 783
+nbOutputs: 3
+hiderLayersLayout:
+  - 32
+  - 16
+learningRate: 0.01
+activationFunction: Sigmoid
+momentum: 0.5
+initialBias: 0
+seed: 1234
+patience: 5
+validationInterval: 2000
+```
+
+The same complete configuration, with a different activation function for the hidden layers and for the output layer:
+
+```yaml
+nbInputs: 783
+nbOutputs: 3
+hiderLayersLayout:
+  - 32
+  - 16
+learningRate: 0.01
+hiddenActivationFunction: ReLU
+outputActivationFunction: Sigmoid
+momentum: 0.5
+initialBias: 0
+seed: 1234
+patience: 5
+validationInterval: 2000
 ```
 
 ### Activation functions

@@ -35,7 +35,7 @@ This document explains the main technical decisions of MyTorch, the alternatives
 
 ## Online stochastic gradient descent
 
-**Choice.** The weights are updated after every sample. There are no mini-batches, no momentum and no learning rate schedule.
+**Choice.** The weights are updated after every sample. There are no mini-batches and no learning rate schedule. An optional `momentum` (`0` by default) keeps a share of the previous update of each weight.
 
 **Why.** It is the simplest form of gradient descent, it uses no extra memory, and it lets training be stopped at any sample (with `Ctrl+C`) with a usable network. On the truth tables, it is enough: XOR, AND and the 3-bit Hamming distance are learnt perfectly by every tested seed (see [BENCHMARKS.md](BENCHMARKS.md#truth-tables)).
 
