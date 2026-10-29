@@ -14,13 +14,13 @@ class MLP:
     @typechecked
     def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClasses: tuple[ActivationClass, ActivationClass | None], seed: float = 67, initialBias: float = 0.5, patience: int | None = None, validationInterval: int = 5000):
         rand.seed(seed)
-        self.seed = seed
-        self.patience = patience
-        self.validationInterval = validationInterval
-        self.nbInputs = nbInputs
-        self.layers = []
-        self.hiddenActivationClass = activationClasses[0]
-        self.outputActivationClass = activationClasses[1]
+        self.seed: float = seed
+        self.patience: int = patience
+        self.validationInterval: int = validationInterval
+        self.nbInputs: int = nbInputs
+        self.layers: list[list[Perceptron]] = []
+        self.hiddenActivationClass: ActivationClass = activationClasses[0]
+        self.outputActivationClass: ActivationClass = activationClasses[1]
         for i in range(len(layers)):
             self.layers.append([])
             if i == 0:
@@ -65,7 +65,7 @@ class MLP:
             outputUnitError = self.outputActivationClass.derivation(output) * (target - output)
             errors.append(outputUnitError)
 
-        perceptrons = []
+        perceptrons: list[Perceptron] = []
         errorUnits: list[list[float]] = []
         for i, layer in enumerate(reversed(self.layers)):
             errorUnits.append([])
