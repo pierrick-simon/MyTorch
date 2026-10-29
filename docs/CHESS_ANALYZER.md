@@ -34,7 +34,7 @@ Validation only runs for networks generated with a `patience` key in their confi
 
 Before training, the analyzer keeps 10 % of `CHESSFILE` aside, at most 500 positions, drawn at random from the seed of the network. These positions are never trained on: they measure how the network does on positions it has not seen.
 
-Every 5,000 training positions, the analyzer computes the accuracy on these positions (the share of positions where the highest output is the expected label) and shows it next to the progress bar, with the best accuracy so far. Each time the best is beaten, the network is saved in `<SAVEFILE without .nn>/best.nn`.
+Every `validationInterval` training positions (a key of the configuration file, 5,000 by default), the analyzer computes the accuracy on these positions (the share of positions where the highest output is the expected label) and shows it next to the progress bar, with the best accuracy so far. Each time the best is beaten, the network is saved in `<SAVEFILE without .nn>/best.nn`.
 
 If the accuracy stays below the best for `patience` validations in a row, the network is getting worse on new positions, usually because it is over-fitting or its learning rate is too high. The analyzer then asks whether to stop:
 
@@ -43,7 +43,7 @@ If the accuracy stays below the best for `patience` validations in a row, the ne
 
 When the standard input is not a terminal, the analyzer cannot ask: it prints a warning and goes on. At the end of training, it prints the final and the best validation accuracies, and where the best network is.
 
-The patience is stored in the `.nn` file when the network is generated. Networks generated before the patience existed have no `patience` attribute: generate them again to train them. The size of the validation set and the interval between validations are constants at the top of [`src/my_torch_analyzer/train.py`](../src/my_torch_analyzer/train.py): `VALIDATION_SIZE` and `VALIDATION_EVERY`. A file of fewer than 10 positions has no validation.
+The analyzer offers to stop at the earliest after `patience × validationInterval` positions without improvement: 25,000 with `patience: 5` and the default interval. Both values are stored in the `.nn` file when the network is generated. Networks generated before they existed do not have them: generate them again to train them. The size of the validation set is a constant at the top of [`src/my_torch_analyzer/train.py`](../src/my_torch_analyzer/train.py): `VALIDATION_SIZE`. A file of fewer than 10 positions has no validation.
 
 ## Input file format
 
@@ -73,7 +73,7 @@ Each position becomes a vector of **783** numbers between `0` and `1`, so a netw
 
 Squares are read in FEN order: from `a8` to `h8`, then rank 7, down to `h1`. For each square, the 12 values are ordered king, queen, rook, bishop, knight, pawn, first for black then for white.
 
-> At commit `adc7c32`, `Color.getColor` returns `BLACK` for every piece, so white pieces are encoded in the black values and the two colours cannot be told apart. [BENCHMARKS.md](BENCHMARKS.md#learning) measures the effect of fixing it.
+> Up to commit `adc7c32`, `Color.getColor` returned `BLACK` for every piece, so the two colours could not be told apart. It is fixed since commit `2cdd908`; [BENCHMARKS.md](BENCHMARKS.md#learning) measures the effect of the fix.
 
 Why this encoding:
 
@@ -81,18 +81,19 @@ Why this encoding:
 - **Every FEN field is kept**, even those that do not change whether a king is in check (castling, en passant, clocks): they cost 15 inputs out of 783, and keep the encoding useful for other questions about the same positions.
 - **Values between 0 and 1**: the clocks are divided by a maximum so that no input is much larger than the others, which would make its weights dominate the first updates.
 
-The encoding is done in [`Chessboard.py`](../src/my_torch_analyzer/Chessboard.py).
+The encoding is done in [`chessboard.py`](../src/my_torch_analyzer/chessboard.py).
 
 ## Output encoding
 
-The network has **2 outputs**:
+The network has **3 outputs**:
 
 | Output | Label                                                |
 |--------|------------------------------------------------------|
 | `0`    | `Nothing`                                            |
-| `1`    | `Check` (any of the four check and checkmate labels) |
+| `1`    | `Check` (`Check White` or `Check Black`)             |
+| `2`    | `Checkmate` (`Checkmate White` or `Checkmate Black`) |
 
-In training, the expected output is `[1, 0]` or `[0, 1]`. In prediction, the program prints the label of the output with the highest value, `Nothing` or `Check`. A network for the analyzer must therefore have `nbOutputs: 2`; with any other number, training stops with an error because the outputs and the expected outputs do not have the same length.
+In training, the expected output is `[1, 0, 0]`, `[0, 1, 0]` or `[0, 0, 1]`. In prediction, the program prints the label of the output with the highest value: `Nothing`, `Check` or `Checkmate`. A network for the analyzer must therefore have `nbOutputs: 3`; with any other number, training stops with an error because the outputs and the expected outputs do not have the same length.
 
 A `Sigmoid` output layer fits this encoding: each output is between 0 and 1, like the expected values.
 
@@ -126,17 +127,21 @@ head -n 20000 all.txt > test.txt
 tail -n +20001 all.txt > train.txt
 ```
 
-Write a configuration with 783 inputs and 2 outputs, for example `chess.yml`:
+Write a configuration with 783 inputs and 3 outputs, for example `chess.yml`:
 
 ```yaml
 nbInputs: 783
-nbOutputs: 2
+nbOutputs: 3
 hiderLayersLayout:
   - 32
 learningRate: 0.05
 hiddenActivationFunction: Sigmoid
 outputActivationFunction: Sigmoid
+patience: 5
+validationInterval: 1000
 ```
+
+With `patience` and `validationInterval`, the analyzer checks the network every 1,000 positions on positions it does not train on, and offers to stop if it gets worse 5 times in a row (see [Validation during training](#validation-during-training)).
 
 Then generate, train and predict:
 

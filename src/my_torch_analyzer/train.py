@@ -11,7 +11,6 @@ from src.my_torch.MLP import MLP
 from src.my_torch_analyzer.chessboard import Chessboard
 
 CHECKPOINT_EVERY = 1000
-VALIDATION_EVERY = 5000
 VALIDATION_SIZE = 500  # at most, and at most 10 % of the data
 
 
@@ -82,7 +81,7 @@ def train(data: list[Chessboard], mlp: MLP, savePath: str = "train") -> MLP:
             output = mlp.tick(chessboard.getInput())
             mlp.learn(output, chessboard.getSate())
             i += 1
-            if validationData and i % VALIDATION_EVERY == 0 and checkPatience(validationData, mlp, i, pbar, bestPath, state):
+            if validationData and i % mlp.validationInterval == 0 and checkPatience(validationData, mlp, i, pbar, bestPath, state):
                 pbar.close()
                 print(f"Stopped after {i} iterations, keeping the model of iteration {state['iteration']}.")
                 return MLP.load(bestPath, False)

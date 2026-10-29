@@ -61,7 +61,7 @@ Every program loads and saves networks the same way (`MLP.load` / `MLP.save`), s
     ├── my_torch_analyzer/
     │   ├── main.py             # argument parsing (argparse), error handling
     │   ├── fen_parser.py       # reads and validates a file of FEN lines
-    │   ├── Chessboard.py       # FEN → 783 input values, label → expected output
+    │   ├── chessboard.py       # FEN → 783 input values, label → expected output
     │   ├── train.py            # one pass of online training over the file
     │   └── predict.py          # prints one prediction per line
     └── bonus/
@@ -92,7 +92,7 @@ A perceptron is one neuron. It stores:
 
 ### `MLP`
 
-`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed, initialBias, patience)` builds a list of layers, each layer being a list of `Perceptron`:
+`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed, initialBias, patience, validationInterval)` builds a list of layers, each layer being a list of `Perceptron`:
 
 - one layer per entry of `hiderLayersLayout`, using the hidden activation function;
 - one output layer of `nbOutputs` perceptrons, using the output activation function.

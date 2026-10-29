@@ -14,6 +14,7 @@ conf = {
     "initialBias": (float, False),
     "seed": (int, False),
     "patience": (int, False),
+    "validationInterval": (int, False),
 }
 
 ConfType = dict[str, int | float | str | list[int]]
@@ -45,6 +46,10 @@ def check_config(data: ConfType, configPath: str) -> None:
         data[key] = ActivationClassNames[data[key]]
     if data.get("patience", 1) < 1:
         raise ValueError(f"my_torch generator: patience must be at least 1 in {configPath}.")
+    if data.get("validationInterval", 1) < 1:
+        raise ValueError(f"my_torch generator: validationInterval must be at least 1 in {configPath}.")
+    if "validationInterval" in data and "patience" not in data:
+        print(f"my_torch generator: Warning: validationInterval is ignored without patience in {configPath}")
 
 @typechecked
 def parse_yml(configPath: str) -> ConfType:

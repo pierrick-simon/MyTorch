@@ -12,10 +12,11 @@ from .perceptron import Perceptron
 
 class MLP:
     @typechecked
-    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClasses: tuple[ActivationClass, ActivationClass | None], seed: float = 67, initialBias: float = 0.5, patience: int | None = None):
+    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClasses: tuple[ActivationClass, ActivationClass | None], seed: float = 67, initialBias: float = 0.5, patience: int | None = None, validationInterval: int = 5000):
         rand.seed(seed)
         self.seed = seed
         self.patience = patience
+        self.validationInterval = validationInterval
         self.nbInputs = nbInputs
         self.layers = []
         self.hiddenActivationClass = activationClasses[0]

@@ -108,6 +108,7 @@ activationFunction: Sigmoid
 | `initialBias`              | `float`     | no        | Initial bias of every neuron. Default: `0.5`.                                                                    |
 | `seed`                     | `int`       | no        | Seed of the first generated network; the next ones use `seed + 1`, `seed + 2`... Default: the current timestamp. |
 | `patience`                 | `int`       | no        | Validations in a row below the best before the analyzer offers to stop (>= 1). Default: never offers to stop.    |
+| `validationInterval`       | `int`       | no        | Positions trained between two validations, with `patience` (>= 1). Default: `5000`.                              |
 
 - A missing required key stops the generator with an error.
 - The activation functions must be given in one of these ways, otherwise the generator stops with an error:
@@ -115,6 +116,7 @@ activationFunction: Sigmoid
   - both `hiddenActivationFunction` and `outputActivationFunction`;
   - `activationFunction` plus one of the two others, which overrides it for its layers.
 - `initialBias` and `seed` are optional. Set `seed` to get the same networks every time the generator is run, for example to compare two configurations fairly.
+- `validationInterval` without `patience` is ignored and reported with a warning.
 - Any other key is ignored and reported with a warning.
 
 For example, a network with 64 inputs, two hidden layers of 32 and 16 neurons and 3 outputs, using ReLU in the hidden layers and Sigmoid in the output layer:
@@ -164,8 +166,8 @@ The output activation must be able to produce the expected values: a `Sigmoid` o
 ```
 
 - `--train`: train the network `LOADFILE` on every position of `CHESSFILE`, then save it into `SAVEFILE` if given, otherwise back into `LOADFILE`. Every line must have a label.
-- `--predict`: print one prediction per position of `CHESSFILE`: `Nothing` or `Check`.
-- `LOADFILE`: a `.nn` file with **783 inputs** and **2 outputs**.
+- `--predict`: print one prediction per position of `CHESSFILE`: `Nothing`, `Check` or `Checkmate`.
+- `LOADFILE`: a `.nn` file with **783 inputs** and **3 outputs**.
 - `CHESSFILE`: one position per line, in FEN notation, optionally followed by its label:
 
 ```
@@ -173,21 +175,23 @@ The output activation must be able to produce the expected values: a `Sigmoid` o
 3r1k1r/pp6/2nb2Qp/q2N3N/2B2Pb1/8/PPP3P1/2KR3R b - - 2 27 Nothing
 ```
 
-The labels are `Nothing`, `Check White`, `Check Black`, `Checkmate White` and `Checkmate Black`; the network learns `Nothing` against the four others. The program exits with code `84` if an argument is invalid, a file cannot be read or a line is not a legal position. `Ctrl+C` during training stops it and saves the network.
+The labels are `Nothing`, `Check White`, `Check Black`, `Checkmate White` and `Checkmate Black`; the network learns three classes: `Nothing`, `Check` (both check labels) and `Checkmate` (both checkmate labels). The program exits with code `84` if an argument is invalid, a file cannot be read or a line is not a legal position. `Ctrl+C` during training stops it and saves the network.
 
-If the configuration file of the network sets `patience`, a small share of `CHESSFILE` (at most 500 positions) is kept aside during training and used to check the network every 5,000 positions. If it gets worse `patience` times in a row, the analyzer offers to stop and keep the best network (see [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md#validation-during-training)).
+If the configuration file of the network sets `patience`, a small share of `CHESSFILE` (at most 500 positions) is kept aside during training and used to check the network every `validationInterval` positions (5,000 by default). If it gets worse `patience` times in a row, the analyzer offers to stop and keep the best network (see [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md#validation-during-training)).
 
 Example, from a shuffled extract of the dataset:
 
 ```sh
 cat > chess.yml << 'EOF'
 nbInputs: 783
-nbOutputs: 2
+nbOutputs: 3
 hiderLayersLayout:
   - 32
 learningRate: 0.05
 hiddenActivationFunction: Sigmoid
 outputActivationFunction: Sigmoid
+patience: 5
+validationInterval: 1000
 EOF
 cat dataset/*/*.txt | shuf | head -n 20000 > train.txt
 ./my_torch_generator chess.yml 1
