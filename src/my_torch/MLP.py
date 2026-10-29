@@ -12,7 +12,7 @@ from .perceptron import Perceptron
 
 class MLP:
     @typechecked
-    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClasses: tuple[ActivationClass, ActivationClass | None], seed: float = 67, initialBias: float = 0.5, patience: int | None = None, validationInterval: int = 5000):
+    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClasses: tuple[ActivationClass, ActivationClass | None], seed: float = 67, momentum: float = 0.0, initialBias: float = 0.5, patience: int | None = None, validationInterval: int = 5000):
         rand.seed(seed)
         self.seed: float = seed
         self.patience: int = patience
@@ -29,11 +29,11 @@ class MLP:
                 prevLayerSize = layers[i - 1]
             for _ in range(layers[i]):
                 weights = [rand.uniform(-1, 1) for _ in range(prevLayerSize)]
-                self.layers[i].append(Perceptron(weights, learningRate, initialBias, self.hiddenActivationClass.activation))
+                self.layers[i].append(Perceptron(weights, learningRate, initialBias, momentum, self.hiddenActivationClass.activation))
         self.layers.append([])
         for i in range(nbOutputs):
             weights = [rand.uniform(-1, 1) for _ in range(len(self.layers[-2]))]
-            self.layers[-1].append(Perceptron(weights, learningRate, initialBias, self.outputActivationClass.activation))
+            self.layers[-1].append(Perceptron(weights, learningRate, initialBias, momentum, self.outputActivationClass.activation))
 
     @typechecked
     def __str__(self):

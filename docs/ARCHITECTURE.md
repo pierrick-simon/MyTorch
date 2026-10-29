@@ -87,12 +87,14 @@ A perceptron is one neuron. It stores:
 | `activationFunc` | the `activation` function of its activation class                  |
 | `lastInput`      | the inputs of the last `tick`, needed to update the weights        |
 | `lastOutput`     | the output of the last `tick`, needed to compute the error         |
+| `momentum`       | share of the previous update added to the next one (`0` by default) |
+| `lastDelta`      | the last update of each weight, used by the momentum               |
 
 `tick(inputs)` computes `activation(Σ inputs[i] × weights[i], bias)` and remembers its input and output. `learn(unitError)` applies the update rule (see [Backpropagation](#backpropagation)).
 
 ### `MLP`
 
-`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed, initialBias, patience, validationInterval)` builds a list of layers, each layer being a list of `Perceptron`:
+`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed, momentum, initialBias, patience, validationInterval)` builds a list of layers, each layer being a list of `Perceptron`:
 
 - one layer per entry of `hiderLayersLayout`, using the hidden activation function;
 - one output layer of `nbOutputs` perceptrons, using the output activation function.
@@ -152,13 +154,14 @@ The number of inputs must match the number of weights of the first layer, otherw
 3. **Update.** Every neuron updates its weights and bias with its own `δ` and the inputs it received:
 
    ```
-   wi   ← wi + lr × δ × xi
+   Δwi  ← lr × δ × xi + momentum × Δwi (previous)
+   wi   ← wi + Δwi
    bias ← bias + lr × δ
    ```
 
 Since `δ` is `−∂E/∂(s+b)`, adding `lr × δ × xi` moves each weight against the gradient of the error.
 
-Training is **online**: the weights change after every sample. There is no batch, no momentum and no learning rate decay.
+Training is **online**: the weights change after every sample. There is no batch and no learning rate decay. With `momentum` (`0` by default), each weight update also keeps a share of the previous one, which smooths the updates and speeds up training along directions where the gradient stays the same. The bias has no momentum.
 
 ## The `.nn` file format
 

@@ -11,6 +11,7 @@ conf = {
     "activationFunction": (str, False),
     "hiddenActivationFunction": (str, False),
     "outputActivationFunction": (str, False),
+    "momentum": (float, False),
     "initialBias": (float, False),
     "seed": (int, False),
     "patience": (int, False),
@@ -44,6 +45,8 @@ def check_config(data: ConfType, configPath: str) -> None:
         if str(data[key]) not in ActivationClassNames:
             raise ValueError(f"my_torch generator: unknown activation function \'{data[key]}\' in {configPath}. Available: {', '.join(ActivationClassNames)}.")
         data[key] = ActivationClassNames[data[key]]
+    if not 0 <= data.get("momentum", 0) < 1:
+        raise ValueError(f"my_torch generator: momentum must be between 0 (included) and 1 (excluded) in {configPath}.")
     if data.get("patience", 1) < 1:
         raise ValueError(f"my_torch generator: patience must be at least 1 in {configPath}.")
     if data.get("validationInterval", 1) < 1:

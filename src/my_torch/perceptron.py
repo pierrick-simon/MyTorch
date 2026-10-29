@@ -5,12 +5,14 @@ from typeguard import typechecked
 
 class Perceptron:
     @typechecked
-    def __init__(self, weights: list[float], learningRate: float, bias: float, activationFunc: Callable):
-        self.weights = weights
-        self.bias = bias
-        self.lr = learningRate
-        self.lastInput = []
-        self.activationFunc = activationFunc
+    def __init__(self, weights: list[float], learningRate: float, bias: float, momentum: float, activationFunc: Callable):
+        self.weights: list[float] = weights
+        self.bias: float = bias
+        self.momentum: float = momentum
+        self.lr: float = learningRate
+        self.lastInput: list[float] = []
+        self.activationFunc: Callable = activationFunc
+        self.lastDelta: list[float] = [0.0 for _ in range(len(self.weights))]
 
     @typechecked
     def __str__(self) -> str:
@@ -30,5 +32,7 @@ class Perceptron:
     @typechecked
     def learn(self, unitError: float):
         for i in range(len(self.weights)):
-            self.weights[i] += self.lr * unitError * self.lastInput[i]
+            delta: float = (self.lr * unitError * self.lastInput[i]) + (self.momentum * self.lastDelta[i])
+            self.lastDelta[i] = delta
+            self.weights[i] += delta
         self.bias += self.lr * unitError

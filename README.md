@@ -105,6 +105,7 @@ activationFunction: Sigmoid
 | `activationFunction`       | `str`       | see below | Activation function of every layer.                                                                              |
 | `hiddenActivationFunction` | `str`       | see below | Activation function of the hidden layers (overrides `activationFunction`).                                       |
 | `outputActivationFunction` | `str`       | see below | Activation function of the output layer (overrides `activationFunction`).                                        |
+| `momentum`                 | `float`     | no        | Share of the previous weight update added to the next one (0 <= momentum < 1). Default: `0` (no momentum).       |
 | `initialBias`              | `float`     | no        | Initial bias of every neuron. Default: `0.5`.                                                                    |
 | `seed`                     | `int`       | no        | Seed of the first generated network; the next ones use `seed + 1`, `seed + 2`... Default: the current timestamp. |
 | `patience`                 | `int`       | no        | Validations in a row below the best before the analyzer offers to stop (>= 1). Default: never offers to stop.    |
