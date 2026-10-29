@@ -27,7 +27,7 @@ def checkParam() -> int | None:
 def generateNeuralNetwork(data: ConfType, path: str, index: int) -> None:
     activations = (data["hiddenActivationFunction"], data["outputActivationFunction"])
     seed = data["seed"] + index if "seed" in data else datetime.now().timestamp()
-    MLP(data["nbInputs"], data["hiderLayersLayout"], data["nbOutputs"], data["learningRate"], activations, seed, data.get("initialBias", 0.5)).save(path)
+    MLP(data["nbInputs"], data["hiderLayersLayout"], data["nbOutputs"], data["learningRate"], activations, seed, data.get("initialBias", 0.5), data.get("patience")).save(path)
 
 @typechecked
 def generateNeuralNetworks() -> None:

@@ -92,7 +92,7 @@ A perceptron is one neuron. It stores:
 
 ### `MLP`
 
-`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed, initialBias)` builds a list of layers, each layer being a list of `Perceptron`:
+`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed, initialBias, patience)` builds a list of layers, each layer being a list of `Perceptron`:
 
 - one layer per entry of `hiderLayersLayout`, using the hidden activation function;
 - one output layer of `nbOutputs` perceptrons, using the output activation function.

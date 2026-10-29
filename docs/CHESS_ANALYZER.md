@@ -30,18 +30,20 @@ Pressing `Ctrl+C` during training stops it and saves the network trained so far.
 
 ### Validation during training
 
+Validation only runs for networks generated with a `patience` key in their configuration file. Without it, every position of `CHESSFILE` is trained on and nothing below happens.
+
 Before training, the analyzer keeps 10 % of `CHESSFILE` aside, at most 500 positions, drawn at random from the seed of the network. These positions are never trained on: they measure how the network does on positions it has not seen.
 
 Every 5,000 training positions, the analyzer computes the accuracy on these positions (the share of positions where the highest output is the expected label) and shows it next to the progress bar, with the best accuracy so far. Each time the best is beaten, the network is saved in `<SAVEFILE without .nn>/best.nn`.
 
-If the accuracy stays below the best for 5 validations in a row, the network is getting worse on new positions, usually because it is over-fitting or its learning rate is too high. The analyzer then asks whether to stop:
+If the accuracy stays below the best for `patience` validations in a row, the network is getting worse on new positions, usually because it is over-fitting or its learning rate is too high. The analyzer then asks whether to stop:
 
 - `y` (the default): training stops, and the best network is saved into `SAVEFILE` instead of the last one;
-- `n`: training goes on, and the analyzer asks again after 5 more validations below the best.
+- `n`: training goes on, and the analyzer asks again after `patience` more validations below the best.
 
 When the standard input is not a terminal, the analyzer cannot ask: it prints a warning and goes on. At the end of training, it prints the final and the best validation accuracies, and where the best network is.
 
-These values are constants at the top of [`src/my_torch_analyzer/train.py`](../src/my_torch_analyzer/train.py): `VALIDATION_SIZE`, `VALIDATION_EVERY` and `PATIENCE`. A file of fewer than 10 positions has no validation.
+The patience is stored in the `.nn` file when the network is generated. Networks generated before the patience existed have no `patience` attribute: generate them again to train them. The size of the validation set and the interval between validations are constants at the top of [`src/my_torch_analyzer/train.py`](../src/my_torch_analyzer/train.py): `VALIDATION_SIZE` and `VALIDATION_EVERY`. A file of fewer than 10 positions has no validation.
 
 ## Input file format
 

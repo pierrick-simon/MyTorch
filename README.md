@@ -107,6 +107,7 @@ activationFunction: Sigmoid
 | `outputActivationFunction` | `str`       | see below | Activation function of the output layer (overrides `activationFunction`).                                        |
 | `initialBias`              | `float`     | no        | Initial bias of every neuron. Default: `0.5`.                                                                    |
 | `seed`                     | `int`       | no        | Seed of the first generated network; the next ones use `seed + 1`, `seed + 2`... Default: the current timestamp. |
+| `patience`                 | `int`       | no        | Validations in a row below the best before the analyzer offers to stop (>= 1). Default: never offers to stop.    |
 
 - A missing required key stops the generator with an error.
 - The activation functions must be given in one of these ways, otherwise the generator stops with an error:
@@ -174,7 +175,7 @@ The output activation must be able to produce the expected values: a `Sigmoid` o
 
 The labels are `Nothing`, `Check White`, `Check Black`, `Checkmate White` and `Checkmate Black`; the network learns `Nothing` against the four others. The program exits with code `84` if an argument is invalid, a file cannot be read or a line is not a legal position. `Ctrl+C` during training stops it and saves the network.
 
-During training, a small share of `CHESSFILE` (at most 500 positions) is kept aside and used to check the network every 5,000 positions. If it gets worse 5 times in a row, the analyzer offers to stop and keep the best network (see [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md#validation-during-training)).
+If the configuration file of the network sets `patience`, a small share of `CHESSFILE` (at most 500 positions) is kept aside during training and used to check the network every 5,000 positions. If it gets worse `patience` times in a row, the analyzer offers to stop and keep the best network (see [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md#validation-during-training)).
 
 Example, from a shuffled extract of the dataset:
 

@@ -13,6 +13,7 @@ conf = {
     "outputActivationFunction": (str, False),
     "initialBias": (float, False),
     "seed": (int, False),
+    "patience": (int, False),
 }
 
 ConfType = dict[str, int | float | str | list[int]]
@@ -42,6 +43,8 @@ def check_config(data: ConfType, configPath: str) -> None:
         if str(data[key]) not in ActivationClassNames:
             raise ValueError(f"my_torch generator: unknown activation function \'{data[key]}\' in {configPath}. Available: {', '.join(ActivationClassNames)}.")
         data[key] = ActivationClassNames[data[key]]
+    if data.get("patience", 1) < 1:
+        raise ValueError(f"my_torch generator: patience must be at least 1 in {configPath}.")
 
 @typechecked
 def parse_yml(configPath: str) -> ConfType:
