@@ -125,12 +125,11 @@ def train(data: list[Chessboard], mlp: MLP, savePath: str = "train") -> MLP:
                     output = mlp.tick(chessboard.getInput())
                     mlp.learn(output, chessboard.getSate())
                     i += 1
-                stop = bool(validationData) and checkPatience(validationData, mlp, i, pbar, bestPath, state)
+                    if validationData and i % mlp.validationInterval == 0 and checkPatience(validationData, mlp, i, pbar, bestPath, state):
+                        print(f"Stopped after {i} iterations, keeping the model of iteration {state['iteration']}.")
+                        return MLP.load(bestPath, False)
             finally:
                 pbar.close()
-            if stop:
-                print(f"Stopped after {i} iterations, keeping the model of iteration {state['iteration']}.")
-                return MLP.load(bestPath, False)
     except KeyboardInterrupt:
         pass
 
