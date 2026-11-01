@@ -1,4 +1,5 @@
 # ruff: noqa: N999 - module name kept so pickled .nn files still load
+import math
 import pickle
 import random as rand
 from os.path import exists
@@ -8,6 +9,14 @@ from typeguard import typechecked
 
 from .activationClasses import *
 from .perceptron import Perceptron
+
+
+@typechecked
+def initLimit(activationClass: ActivationClass, nbInputs: int, nbOutputs: int) -> float:
+    """Weights are drawn in [-limit, limit]: He for ReLU-like functions, Xavier for the others."""
+    if activationClass in (ReLU, LeakyReLU):
+        return math.sqrt(6 / nbInputs)
+    return math.sqrt(6 / (nbInputs + nbOutputs))
 
 
 class MLP:
@@ -28,11 +37,13 @@ class MLP:
             else:
                 prevLayerSize = layers[i - 1]
             for _ in range(layers[i]):
-                weights = [rand.uniform(-1, 1) for _ in range(prevLayerSize)]
+                limit = initLimit(self.hiddenActivationClass, prevLayerSize, layers[i])
+                weights = [rand.uniform(-limit, limit) for _ in range(prevLayerSize)]
                 self.layers[i].append(Perceptron(weights, learningRate, initialBias, momentum, self.hiddenActivationClass.activation))
         self.layers.append([])
         for i in range(nbOutputs):
-            weights = [rand.uniform(-1, 1) for _ in range(len(self.layers[-2]))]
+            limit = initLimit(self.outputActivationClass, len(self.layers[-2]), nbOutputs)
+            weights = [rand.uniform(-limit, limit) for _ in range(len(self.layers[-2]))]
             self.layers[-1].append(Perceptron(weights, learningRate, initialBias, momentum, self.outputActivationClass.activation))
 
     @typechecked

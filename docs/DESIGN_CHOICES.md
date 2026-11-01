@@ -62,11 +62,11 @@ A single function for the whole network would force a bad compromise in one of t
 
 ## Weight initialisation
 
-**Choice.** Weights are drawn uniformly in `[-1, 1]`, biases start at `0.5` unless the configuration file sets `initialBias`.
+**Choice.** Weights are drawn uniformly in `[-limit, limit]`, where the limit depends on the activation function of the layer and on its size: `√(6 / nbInputs)` for `ReLU` and `LeakyReLU` (He initialisation), `√(6 / (nbInputs + nbOutputs))` for the others (Xavier initialisation). Biases start at `0.5` unless the configuration file sets `initialBias`.
 
-**Why.** It is the simplest initialisation that breaks the symmetry between neurons, and it works well for the small networks of the truth tables.
+**Why.** With a fixed range such as `[-1, 1]`, the weighted sum of a neuron grows with its number of inputs. With 783 inputs, `Sigmoid` and `Tanh` neurons start saturated (their derivative is close to `0`, so they barely learn), and deep `ReLU` networks made `math.exp` overflow in the `Sigmoid` output on the first sample. Scaling the range keeps the weighted sums, and the errors sent back, of the same order from layer to layer. `ReLU` cancels half of its inputs, so He initialisation uses a range about `√2` times larger than Xavier.
 
-**Cost.** The range does not depend on the number of inputs of the neuron. With 783 inputs and deep `ReLU` layers, the weighted sums grow from layer to layer: with the 783-256-64-32 shape of our first chess configuration, a `ReLU` network made `math.exp` overflow in the `Sigmoid` output on the first sample. Scaling the range by `1/√nbInputs` (Xavier or He initialisation) would fix this; until then, prefer `Sigmoid` or `Tanh` hidden layers, or a single hidden layer, for large inputs.
+**Cost.** Networks generated with the same `seed` before this change have other weights: generate them again to compare configurations.
 
 ## Seeds
 

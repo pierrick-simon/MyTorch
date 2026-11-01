@@ -81,7 +81,7 @@ A perceptron is one neuron. It stores:
 
 | Attribute        | Meaning                                                            |
 |------------------|--------------------------------------------------------------------|
-| `weights`        | one weight per input, initialised uniformly in `[-1, 1]`           |
+| `weights`        | one weight per input, initialised with Xavier or He (see DESIGN_CHOICES) |
 | `bias`           | initialised to `initialBias` (`0.5` by default)                    |
 | `lr`             | learning rate, copied from the configuration                       |
 | `activationFunc` | the `activation` function of its activation class                  |
