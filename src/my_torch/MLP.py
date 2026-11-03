@@ -21,11 +21,12 @@ def initLimit(activationClass: ActivationClass, nbInputs: int, nbOutputs: int) -
 
 class MLP:
     @typechecked
-    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClasses: tuple[ActivationClass, ActivationClass | None], seed: float = 67, momentum: float = 0.0, initialBias: float = 0.5, patience: int | None = None, validationInterval: int = 5000):
+    def __init__(self, nbInputs: int, layers: list[int], nbOutputs: int, learningRate: float, activationClasses: tuple[ActivationClass, ActivationClass | None], seed: float = 67, momentum: float = 0.0, initialBias: float = 0.5, patience: int | None = None, validationInterval: int = 5000, batchSize: int = 1):
         rand.seed(seed)
         self.seed: float = seed
         self.patience: int = patience
         self.validationInterval: int = validationInterval
+        self.batchSize: int = batchSize
         self.nbInputs: int = nbInputs
         self.layers: list[list[Perceptron]] = []
         self.hiddenActivationClass: ActivationClass = activationClasses[0]
@@ -45,6 +46,11 @@ class MLP:
             limit = initLimit(self.outputActivationClass, len(self.layers[-2]), nbOutputs)
             weights = [rand.uniform(-limit, limit) for _ in range(len(self.layers[-2]))]
             self.layers[-1].append(Perceptron(weights, learningRate, initialBias, momentum, self.outputActivationClass.activation))
+
+    def __setstate__(self, state: dict):
+        """Networks saved before mini-batches are trained online."""
+        state.setdefault("batchSize", 1)
+        self.__dict__.update(state)
 
     @typechecked
     def __str__(self):
@@ -70,7 +76,8 @@ class MLP:
         return inputs
 
     @typechecked
-    def learn(self, outputs: list[float], targets: list[float]):
+    def errorUnits(self, outputs: list[float], targets: list[float]) -> list[list[float]]:
+        """Error of every perceptron for the last sample, from the last layer to the first."""
         errors: list[float] = []
         for output, target in zip(outputs, targets, strict=True):
             outputUnitError = self.outputActivationClass.derivation(output) * (target - output)
@@ -98,9 +105,30 @@ class MLP:
                 errors.append(errorUnit)
                 perceptrons.append(p)
 
+        return errorUnits
+
+    @typechecked
+    def learn(self, outputs: list[float], targets: list[float]):
+        """Online training: updates the weights right away with the last sample."""
+        errorUnits = self.errorUnits(outputs, targets)
         for i, layer in enumerate(self.layers):
             for j, p in enumerate(layer):
                 p.learn(errorUnits[len(errorUnits) - 1 - i][j])
+
+    @typechecked
+    def accumulate(self, outputs: list[float], targets: list[float]):
+        """Mini-batch training: keeps the update of the last sample until step is called."""
+        errorUnits = self.errorUnits(outputs, targets)
+        for i, layer in enumerate(self.layers):
+            for j, p in enumerate(layer):
+                p.accumulate(errorUnits[len(errorUnits) - 1 - i][j])
+
+    @typechecked
+    def step(self, batchSize: int):
+        """Applies the mean of the updates accumulated over the last batchSize samples."""
+        for layer in self.layers:
+            for p in layer:
+                p.applyAccumulated(batchSize)
 
     @typechecked
     def save(self, path: str, forceOverwrite: bool = False, printResult: bool = True):

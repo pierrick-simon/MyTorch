@@ -47,6 +47,20 @@ def balancedEpoch(data: list[Chessboard], rng: random.Random) -> list[Chessboard
     return epoch
 
 @typechecked
+def trainBatch(batch: list[Chessboard], mlp: MLP):
+    """One update of the weights with the mean of the updates of the batch."""
+    if len(batch) == 1:
+        mlp.learn(mlp.tick(batch[0].getInput()), batch[0].getSate())
+        return
+    done = 0
+    try:
+        for chessboard in batch:
+            mlp.accumulate(mlp.tick(chessboard.getInput()), chessboard.getSate())
+            done += 1
+    finally:  # on Ctrl+C, the samples already seen still count
+        mlp.step(max(done, 1))
+
+@typechecked
 def accuracy(data: list[Chessboard], mlp: MLP) -> float:
     ok = 0
     for chessboard in data:
@@ -114,20 +128,27 @@ def train(data: list[Chessboard], mlp: MLP, savePath: str = "train") -> MLP:
         mlp.save(bestPath, True, False)
 
     i = 0
+    # i grows by a whole batch at a time, so checkpoints and validations happen once i reaches these
+    nextCheckpoint = 0
+    nextValidation = mlp.validationInterval
     try:
         for epoch in range(EPOCHS):
             epochData = balancedEpoch(data, rng)
-            pbar = tqdm(epochData, desc=f"epoch {epoch + 1}/{EPOCHS}")
+            pbar = tqdm(total=len(epochData), desc=f"epoch {epoch + 1}/{EPOCHS}")
             try:
-                for chessboard in pbar:
-                    if i % CHECKPOINT_EVERY == 0:
+                for start in range(0, len(epochData), mlp.batchSize):
+                    if i >= nextCheckpoint:
                         mlp.save(f"{savePath}/model_{i}.nn", True, False)
-                    output = mlp.tick(chessboard.getInput())
-                    mlp.learn(output, chessboard.getSate())
-                    i += 1
-                    if validationData and i % mlp.validationInterval == 0 and checkPatience(validationData, mlp, i, pbar, bestPath, state):
-                        print(f"Stopped after {i} iterations, keeping the model of iteration {state['iteration']}.")
-                        return MLP.load(bestPath, False)
+                        nextCheckpoint = (i // CHECKPOINT_EVERY + 1) * CHECKPOINT_EVERY
+                    batch = epochData[start:start + mlp.batchSize]
+                    trainBatch(batch, mlp)
+                    i += len(batch)
+                    pbar.update(len(batch))
+                    if validationData and i >= nextValidation:
+                        nextValidation = (i // mlp.validationInterval + 1) * mlp.validationInterval
+                        if checkPatience(validationData, mlp, i, pbar, bestPath, state):
+                            print(f"Stopped after {i} iterations, keeping the model of iteration {state['iteration']}.")
+                            return MLP.load(bestPath, False)
             finally:
                 pbar.close()
     except KeyboardInterrupt:

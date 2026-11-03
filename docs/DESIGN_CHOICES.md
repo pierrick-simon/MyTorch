@@ -4,7 +4,7 @@ This document explains the main technical decisions of MyTorch, the alternatives
 
 - [Pure Python, no NumPy](#pure-python-no-numpy)
 - [One object per neuron](#one-object-per-neuron)
-- [Online stochastic gradient descent](#online-stochastic-gradient-descent)
+- [Online stochastic gradient descent, optional mini-batches](#online-stochastic-gradient-descent-optional-mini-batches)
 - [Separate hidden and output activation functions](#separate-hidden-and-output-activation-functions)
 - [Derivatives computed from the output](#derivatives-computed-from-the-output)
 - [Weight initialisation](#weight-initialisation)
@@ -33,13 +33,15 @@ This document explains the main technical decisions of MyTorch, the alternatives
 
 **Cost.** Each neuron is a Python object with its own list, so there is one attribute lookup and one function call per neuron and per sample. It also makes the network stateful: `learn` must be called right after the `tick` of the same sample.
 
-## Online stochastic gradient descent
+## Online stochastic gradient descent, optional mini-batches
 
-**Choice.** The weights are updated after every sample. There are no mini-batches and no learning rate schedule. An optional `momentum` (`0` by default) keeps a share of the previous update of each weight.
+**Choice.** By default the weights are updated after every sample. A configuration can set `batchSize` to update them once every `batchSize` samples with the mean of their updates. There is no learning rate schedule. An optional `momentum` (`0` by default) keeps a share of the previous update of each weight.
 
 **Why.** It is the simplest form of gradient descent, it uses no extra memory, and it lets training be stopped at any sample (with `Ctrl+C`) with a usable network. On the truth tables, it is enough: XOR, AND and the 3-bit Hamming distance are learnt perfectly by every tested seed (see [BENCHMARKS.md](BENCHMARKS.md#truth-tables)).
 
 **Cost.** The gradient of a single sample is noisy, so the learning rate must stay small and the order of the samples matters. The analyzer trains in file order, so its training file must be shuffled (see [CHESS_ANALYZER.md](CHESS_ANALYZER.md#training-on-the-dataset)).
+
+**Mini-batches.** Averaging the updates of a batch gives a less noisy direction, and the samples of a batch all use the same weights, so their updates could be computed in parallel. The cost is one extra sum per weight in every neuron, and `batchSize` times fewer updates per epoch: the learning rate usually has to be raised. `batchSize: 1` keeps the online code path, so it gives exactly the same networks as before. With `Ctrl+C`, the samples of the unfinished batch are still applied. Since the number of trained positions grows by a whole batch at a time, checkpoints and validations happen on the first batch that reaches their interval.
 
 ## Separate hidden and output activation functions
 

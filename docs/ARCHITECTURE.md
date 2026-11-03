@@ -89,12 +89,14 @@ A perceptron is one neuron. It stores:
 | `lastOutput`     | the output of the last `tick`, needed to compute the error         |
 | `momentum`       | share of the previous update added to the next one (`0` by default) |
 | `lastDelta`      | the last update of each weight, used by the momentum               |
+| `deltaSum`       | sum of the updates of the current batch, one per weight            |
+| `biasDeltaSum`   | sum of the bias updates of the current batch                       |
 
-`tick(inputs)` computes `activation(Σ inputs[i] × weights[i], bias)` and remembers its input and output. `learn(unitError)` applies the update rule (see [Backpropagation](#backpropagation)).
+`tick(inputs)` computes `activation(Σ inputs[i] × weights[i], bias)` and remembers its input and output. `learn(unitError)` applies the update rule (see [Backpropagation](#backpropagation)). `accumulate(unitError)` adds the same update to `deltaSum` without changing the weights, and `applyAccumulated(batchSize)` applies the mean of these sums then resets them.
 
 ### `MLP`
 
-`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed, momentum, initialBias, patience, validationInterval)` builds a list of layers, each layer being a list of `Perceptron`:
+`MLP(nbInputs, layers, nbOutputs, learningRate, (hiddenActivation, outputActivation), seed, momentum, initialBias, patience, validationInterval, batchSize)` builds a list of layers, each layer being a list of `Perceptron`:
 
 - one layer per entry of `hiderLayersLayout`, using the hidden activation function;
 - one output layer of `nbOutputs` perceptrons, using the output activation function.
@@ -135,7 +137,7 @@ The number of inputs must match the number of weights of the first layer, otherw
 
 ## Backpropagation
 
-`MLP.learn(outputs, targets)` performs one step of stochastic gradient descent on the squared error `E = ½ Σ (target − output)²`, for the sample that was just sent to `tick`.
+`MLP.learn(outputs, targets)` performs one step of stochastic gradient descent on the squared error `E = ½ Σ (target − output)²`, for the sample that was just sent to `tick`. `MLP.errorUnits(outputs, targets)` does steps 1 and 2 below and is shared with mini-batch training.
 
 1. **Output layer.** For each output neuron `k`:
 
@@ -161,7 +163,14 @@ The number of inputs must match the number of weights of the first layer, otherw
 
 Since `δ` is `−∂E/∂(s+b)`, adding `lr × δ × xi` moves each weight against the gradient of the error.
 
-Training is **online**: the weights change after every sample. There is no batch and no learning rate decay. With `momentum` (`0` by default), each weight update also keeps a share of the previous one, which smooths the updates and speeds up training along directions where the gradient stays the same. The bias has no momentum.
+By default, training is **online**: the weights change after every sample. With `batchSize` greater than `1`, training uses **mini-batches**: for each sample of the batch, `MLP.accumulate(outputs, targets)` computes the `δ` with the same weights and adds `lr × δ × xi` to the sums of each neuron, then `MLP.step(batchSize)` applies their mean once:
+
+```
+Δwi  ← (Σbatch lr × δ × xi) / batchSize + momentum × Δwi (previous)
+bias ← bias + (Σbatch lr × δ) / batchSize
+```
+
+`accumulate` must still be called right after the `tick` of the same sample. There is no learning rate decay. With `momentum` (`0` by default), each weight update also keeps a share of the previous one, which smooths the updates and speeds up training along directions where the gradient stays the same. The bias has no momentum.
 
 ## The `.nn` file format
 

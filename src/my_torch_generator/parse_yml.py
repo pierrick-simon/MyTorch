@@ -16,6 +16,7 @@ conf = {
     "seed": (int, False),
     "patience": (int, False),
     "validationInterval": (int, False),
+    "batchSize": (int, False),
 }
 
 ConfType = dict[str, int | float | str | list[int]]
@@ -51,6 +52,8 @@ def check_config(data: ConfType, configPath: str) -> None:
         raise ValueError(f"my_torch generator: patience must be at least 1 in {configPath}.")
     if data.get("validationInterval", 1) < 1:
         raise ValueError(f"my_torch generator: validationInterval must be at least 1 in {configPath}.")
+    if data.get("batchSize", 1) < 1:
+        raise ValueError(f"my_torch generator: batchSize must be at least 1 in {configPath}.")
     if "validationInterval" in data and "patience" not in data:
         print(f"my_torch generator: Warning: validationInterval is ignored without patience in {configPath}")
 

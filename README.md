@@ -112,6 +112,7 @@ activationFunction: Sigmoid
 | `seed`                     | `int`       | no        | Seed of the first generated network; the next ones use `seed + 1`, `seed + 2`... Default: the current timestamp. |
 | `patience`                 | `int`       | no        | Validations in a row below the best before the analyzer offers to stop (>= 1). Default: never offers to stop.    |
 | `validationInterval`       | `int`       | no        | Positions trained between two validations, with `patience` (>= 1). Default: `5000`.                              |
+| `batchSize`                | `int`       | no        | Samples averaged into each weight update (>= 1). Default: `1` (online training, an update after every sample).   |
 
 - A missing required key stops the generator with an error.
 - The activation functions must be given in one of these ways, otherwise the generator stops with an error:
@@ -121,6 +122,7 @@ activationFunction: Sigmoid
 - `initialBias` and `seed` are optional. Set `seed` to get the same networks every time the generator is run, for example to compare two configurations fairly.
 - `momentum` is optional and must be between `0` (included) and `1` (excluded), otherwise the generator stops with an error. Each weight update becomes `Δw ← learningRate × error × input + momentum × Δw (previous)`: a share of the previous update is kept, which smooths the noise of online training and speeds it up along directions where the gradient stays the same. The bias has no momentum. With a high momentum (e.g. `0.9`), the steps are about `1 / (1 - momentum)` times larger, so the learning rate may need to be lowered.
 - `validationInterval` without `patience` is ignored and reported with a warning.
+- `batchSize` is optional and must be at least `1`, otherwise the generator stops with an error. With `batchSize: B`, the network computes the update of `B` samples with the same weights, then applies their mean once: `Δw ← learningRate × mean(error × input) + momentum × Δw (previous)`. The mean is less noisy than a single sample, but there are `B` times fewer updates per epoch, so the learning rate usually needs to be raised.
 - Any other key is ignored and reported with a warning.
 
 For example, a network with 64 inputs, two hidden layers of 32 and 16 neurons and 3 outputs, using ReLU in the hidden layers and Sigmoid in the output layer:
