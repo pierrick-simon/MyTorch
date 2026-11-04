@@ -7,3 +7,6 @@ dataset/
 train.txt
 test.txt
 *.csv
+
+# test network
+!my_torch_network.nn
