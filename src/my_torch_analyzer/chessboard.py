@@ -45,15 +45,17 @@ class Fen(Enum):
 
 class State(Enum):
     NOTHING = 0
-    CHECK = 1
-    CHECKMATE = 2
+    CHECK_WHITE = 1
+    CHECK_BLACK = 2
+    CHECKMATE_WHITE = 3
+    CHECKMATE_BLACK = 4
 
 STATE_LABELS = {
     "nothing": State.NOTHING,
-    "check white": State.CHECK,
-    "check black": State.CHECK,
-    "checkmate white": State.CHECKMATE,
-    "checkmate black": State.CHECKMATE,
+    "check white": State.CHECK_WHITE,
+    "check black": State.CHECK_BLACK,
+    "checkmate white": State.CHECKMATE_WHITE,
+    "checkmate black": State.CHECKMATE_BLACK,
 }
 
 @typechecked
@@ -63,7 +65,7 @@ def getState(state: str) -> State:
 @typechecked
 def getStateStr(output: list[float]) -> str:
     index = output.index(max(output))
-    return State(index).name.capitalize()
+    return State(index).name.replace("_", " ").title()
 
 Grid = list[list[str | None]]
 
@@ -247,7 +249,7 @@ class Chessboard:
         parts = fen.split()
         activeColor = parts[Fen.ACTIVECOLOR.value]
         self.input: list[float] = _kingRelativeInput(parts[Fen.PLACEMENT.value], activeColor == "w")
-        self.state = [0, 0, 0]
+        self.state = [0, 0, 0, 0, 0]
         self.has_state = False
         if (state != None):
             self.state[getState(state).value] = 1
