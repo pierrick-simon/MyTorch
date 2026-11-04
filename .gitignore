@@ -6,3 +6,4 @@ dataset/
 *.yml
 train.txt
 test.txt
+*.csv
