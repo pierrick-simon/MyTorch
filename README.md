@@ -20,6 +20,7 @@ MyTorch is a neural network library written from scratch in pure Python (multi-l
 | [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md) | Chess file format, input encoding, dataset, how to train on it.         |
 | [docs/DESIGN_CHOICES.md](docs/DESIGN_CHOICES.md) | Why the project is built this way, and what each choice costs.          |
 | [docs/BENCHMARKS.md](docs/BENCHMARKS.md)         | Speed, accuracy on the truth tables and on chess positions.             |
+| [docs/INPUT_FORMATS_COMPARAISON.md](docs/INPUT_FORMATS_COMPARAISON.md) | Comparaison of different methodes of inputs       |
 | [CONTRIBUTING.md](CONTRIBUTING.md)               | Code style, commits, CI, how to add an activation function or a task.   |
 
 ## Getting Started
@@ -45,7 +46,13 @@ git clone git@github.com:pierrick-simon/MyTorch.git
 cd MyTorch
 ```
 
-3. **install dependencies:**
+3. **Compile the project**
+
+```sh
+make
+```
+
+4. **install dependencies:**
 
 ```sh
 python3.14 -m venv .venv
@@ -53,7 +60,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. **Build a chess training file** (only needed for `my_torch_analyzer`):
+5. **Build a chess training file** (only needed for `my_torch_analyzer`):
 
 ```sh
 ./dataset.sh 2000
