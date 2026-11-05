@@ -10,3 +10,12 @@ test.txt
 
 # test network
 !my_torch_network.nn
+
+# binary
+my_torch_analyzer
+my_torch_generator
+my_torch_bonus
+
+!my_torch_analyzer/
+!my_torch_generator/
+!my_torch_bonus/
