@@ -9,7 +9,7 @@ ANALYSER = my_torch_analyzer
 GENERATOR = my_torch_generator
 BONUS = my_torch_bonus
 
-All: $(ANALYSER) $(GENERATOR) $(BONUS)
+all: $(ANALYSER) $(GENERATOR) $(BONUS)
 
 $(ANALYSER):
 	ln src/$(ANALYSER)/entry_point $(ANALYSER)
