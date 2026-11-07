@@ -15,7 +15,10 @@ test.txt
 my_torch_analyzer
 my_torch_generator
 my_torch_bonus
+my_torch_hyperoptimizer
+hyperopt/
 
 !my_torch_analyzer/
 !my_torch_generator/
 !my_torch_bonus/
+!my_torch_hyperoptimizer/
