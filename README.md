@@ -4,12 +4,12 @@
 
 By *Ariel Amriou*(ariel.amriou@epitech.eu) & *Pierrick Simon*(pierrick.simon@epitech.eu).
 
-MyTorch is a neural network library written from scratch in pure Python (multi-layer perceptrons trained by backpropagation), with three programs built on it:
+MyTorch is a neural network library written from scratch in pure Python (multi-layer perceptrons trained by backpropagation), with four programs built on it:
 
 | Program              | Role                                                                            |
 |----------------------|---------------------------------------------------------------------------------|
 | `my_torch_generator` | Creates untrained networks (`.nn` files) from YAML configuration files.         |
-| `my_torch_analyzer`  | Trains a network on chess positions, or uses it to tell whether a king is in check. |
+| `my_torch_analyzer`  | Trains a network on chess positions, or uses it to tell whether a king is in check or checkmate, and by which side. |
 | `my_torch_bonus`     | Trains and evaluates a network on small truth tables (AND, XOR, Hamming distance). |
 | `my_torch_hyperoptimizer` | Searches the best hyperparameters for the chess analyzer (random search + successive halving). |
 
@@ -17,12 +17,12 @@ MyTorch is a neural network library written from scratch in pure Python (multi-l
 
 | Document                                        | Content                                                                 |
 |-------------------------------------------------|-------------------------------------------------------------------------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | Code layout, forward pass, backpropagation, `.nn` file format.          |
-| [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md) | Chess file format, input encoding, dataset, how to train on it.         |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | Code layout, forward pass, backpropagation, `.nn` file format, how each program works. |
+| [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md) | Chess file format, input and output encoding, dataset, training, checkpoints and validation. |
 | [docs/DESIGN_CHOICES.md](docs/DESIGN_CHOICES.md) | Why the project is built this way, and what each choice costs.          |
-| [docs/BENCHMARKS.md](docs/BENCHMARKS.md)         | Speed, accuracy on the truth tables and on chess positions.             |
-| [docs/INPUT_FORMATS_COMPARAISON.md](docs/INPUT_FORMATS_COMPARAISON.md) | Comparaison of different methodes of inputs       |
-| [CONTRIBUTING.md](CONTRIBUTING.md)               | Code style, commits, CI, how to add an activation function or a task.   |
+| [docs/BENCHMARKS.md](docs/BENCHMARKS.md)         | Speed, cost of type checking, accuracy on the truth tables and on chess positions, training curves. |
+| [docs/INPUT_FORMATS_COMPARAISON.md](docs/INPUT_FORMATS_COMPARAISON.md) | The five input encodings tried for the analyzer, and why King-Rays-Escape (141 inputs) was kept. |
+| [CONTRIBUTING.md](CONTRIBUTING.md)               | Code style, commits, CI, how to add an activation function, a task, a label or a hyperparameter. |
 
 ## Getting Started
 
@@ -47,7 +47,7 @@ git clone git@github.com:pierrick-simon/MyTorch.git
 cd MyTorch
 ```
 
-3. **Compile the project**
+3. **Compile the project** (creates the four executables at the root of the repository):
 
 ```sh
 make
@@ -67,7 +67,7 @@ pip install -r requirements.txt
 ./dataset.sh 2000
 ```
 
-`dataset.sh` extracts `dataset.zip` into `dataset/` if needed (see below).
+`dataset.sh` extracts `dataset.zip` into `dataset/` if needed, then writes 9 × 2,000 positions into `train.txt` (see [Chess analyzer](#chess-analyzer)).
 
 The programs use `.venv/bin/python` as interpreter: run them from the root of the repository.
 
@@ -159,11 +159,11 @@ initialBias: 0
 seed: 42
 ```
 
-A complete configuration using every key, with one `activationFunction` for every layer:
+A complete configuration for the chess analyzer (141 inputs, 5 outputs) using every key, with one `activationFunction` for every layer:
 
 ```yaml
-nbInputs: 783
-nbOutputs: 3
+nbInputs: 141
+nbOutputs: 5
 hiderLayersLayout:
   - 32
   - 16
@@ -174,13 +174,14 @@ initialBias: 0
 seed: 1234
 patience: 5
 validationInterval: 2000
+batchSize: 4
 ```
 
 The same complete configuration, with a different activation function for the hidden layers and for the output layer:
 
 ```yaml
-nbInputs: 783
-nbOutputs: 3
+nbInputs: 141
+nbOutputs: 5
 hiderLayersLayout:
   - 32
   - 16
@@ -192,6 +193,7 @@ initialBias: 0
 seed: 1234
 patience: 5
 validationInterval: 2000
+batchSize: 4
 ```
 
 ### Activation functions
@@ -208,15 +210,15 @@ The output activation must be able to produce the expected values: a `Sigmoid` o
 
 ### Chess analyzer
 
-`my_torch_analyzer` trains a network on chess positions, or uses a trained network to predict whether a king is in check.
+`my_torch_analyzer` trains a network on chess positions, or uses a trained network to predict whether a king is in check or checkmate, and by which side.
 
 ```sh
 ./my_torch_analyzer [--predict | --train [--save SAVEFILE]] LOADFILE CHESSFILE
 ```
 
-- `--train`: train the network `LOADFILE` on every position of `CHESSFILE`, then save it into `SAVEFILE` if given, otherwise back into `LOADFILE`. Every line must have a label.
-- `--predict`: print one prediction per position of `CHESSFILE`: `Nothing`, `Check` or `Checkmate`.
-- `LOADFILE`: a `.nn` file with **783 inputs** and **3 outputs**.
+- `--train`: train the network `LOADFILE` on the positions of `CHESSFILE`, then save it into `SAVEFILE` if given, otherwise back into `LOADFILE`. Every line must have a label.
+- `--predict`: print one prediction per position of `CHESSFILE`: `Nothing`, `Check White`, `Check Black`, `Checkmate White` or `Checkmate Black`.
+- `LOADFILE`: a `.nn` file with **141 inputs** and **5 outputs**.
 - `CHESSFILE`: one position per line, in FEN notation, optionally followed by its label:
 
 ```
@@ -224,29 +226,40 @@ The output activation must be able to produce the expected values: a `Sigmoid` o
 3r1k1r/pp6/2nb2Qp/q2N3N/2B2Pb1/8/PPP3P1/2KR3R b - - 2 27 Nothing
 ```
 
-The labels are `Nothing`, `Check White`, `Check Black`, `Checkmate White` and `Checkmate Black`; the network learns three classes: `Nothing`, `Check` (both check labels) and `Checkmate` (both checkmate labels). The program exits with code `84` if an argument is invalid, a file cannot be read or a line is not a legal position. `Ctrl+C` during training stops it and saves the network.
+The labels are `Nothing`, `Check White`, `Check Black`, `Checkmate White` and `Checkmate Black` (case insensitive). The colour is the side **giving** the check, and each label is one output of the network. The program exits with code `84` if an argument is invalid, a file cannot be read or a line is not a legal position.
 
-If the configuration file of the network sets `patience`, a small share of `CHESSFILE` (at most 500 positions) is kept aside during training and used to check the network every `validationInterval` positions (5,000 by default). If it gets worse `patience` times in a row, the analyzer offers to stop and keep the best network (see [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md#validation-during-training)).
+How a training goes:
+
+- The positions are shuffled with the seed of the network, then trained for **20 epochs**. In each epoch, the rare labels are drawn again (at most 4 times each position) so that every label is seen about as often as the most common one.
+- A checkpoint `model_N.nn` is saved every 1,000 positions in a directory named after `SAVEFILE` without `.nn` (`chess_trained/` for `--save chess_trained.nn`). The directory is emptied at the start of each training, and the analyzer refuses to start if it contains anything other than `.nn` files.
+- If the configuration file of the network sets `patience`, 10 % of `CHESSFILE` (at most 500 positions) is kept aside and used to check the network every `validationInterval` positions (5,000 by default). The best network is saved in `best.nn` in the same directory. If the network gets worse `patience` times in a row, the analyzer offers to stop and keep the best network (see [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md#validation-during-training)).
+- `Ctrl+C` stops the training and saves the network trained so far.
 
 Example, from a shuffled extract of the dataset:
 
 ```sh
 cat > chess.yml << 'EOF'
-nbInputs: 783
-nbOutputs: 3
+nbInputs: 141
+nbOutputs: 5
 hiderLayersLayout:
+  - 64
   - 32
-learningRate: 0.05
-hiddenActivationFunction: Sigmoid
+learningRate: 0.01
+hiddenActivationFunction: LeakyReLU
 outputActivationFunction: Sigmoid
+momentum: 0.5
+initialBias: 0
 patience: 5
-validationInterval: 1000
+validationInterval: 5000
 EOF
 ./dataset.sh 2000 train.txt
+./dataset.sh 300 test.txt
 ./my_torch_generator chess.yml 1
-./my_torch_analyzer --train --save chess_trained.nn chess_1.nn train.txt
-./my_torch_analyzer --predict chess_trained.nn train.txt
+.venv/bin/python -O my_torch_analyzer --train --save chess_trained.nn chess_1.nn train.txt
+./my_torch_analyzer --predict chess_trained.nn test.txt
 ```
+
+This trains `chess_1.nn` and writes `chess_trained.nn`, `chess_trained/model_0.nn`, `chess_trained/model_1000.nn`... and `chess_trained/best.nn`. To see how the network improved from one checkpoint to the next, see [Finding the best model](#from-the-search-to-the-training-chart) (steps 5 and 6).
 
 `dataset.sh` builds a shuffled training file from the dataset:
 
@@ -254,10 +267,10 @@ EOF
 ./dataset.sh NB [OUTPUT_FILE]
 ```
 
-- `NB`: number of positions picked at random from **each** of the 9 files of `dataset/` (3 labels × 3 piece counts), so the output holds `9 × NB` positions with the labels balanced. A file with fewer than `NB` lines is taken whole, with a warning.
+- `NB`: number of positions picked at random from **each** of the 9 files of `dataset/` (3 states × 3 piece counts), so the output holds `9 × NB` positions. A file with fewer than `NB` lines is taken whole, with a warning.
 - `OUTPUT_FILE`: the file to write. Default: `train.txt`.
 - If `dataset/` does not exist, the script extracts `dataset.zip` first.
-- The positions are shuffled, since the analyzer trains in file order.
+- The positions are picked without a seed, so two calls give different files, which may share a few positions.
 
 The input encoding, the dataset and training advice are described in [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md).
 
@@ -272,6 +285,7 @@ Running Python with the `-O` option (the capital letter O, not zero) disables th
 .venv/bin/python -O my_torch_analyzer --predict chess_1.nn test.txt
 .venv/bin/python -O my_torch_bonus --train hamming hamming_1.nn
 .venv/bin/python -O my_torch_generator model.yml 3
+.venv/bin/python -O my_torch_hyperoptimizer
 ```
 
 - With `-O`, `@typechecked` returns the function unchanged, so the code runs exactly as fast as if the decorators were not there.
@@ -281,8 +295,11 @@ Running Python with the `-O` option (the capital letter O, not zero) disables th
 | Network         | Training step, normal mode | Training step, `-O` | One pass over the chess dataset, `-O` |
 |-----------------|---------------------------:|--------------------:|--------------------------------------:|
 | 6-8-1           | 0.138 ms                   | 0.011 ms            | —                                     |
-| 783-32-2        | 15.4 ms                    | 1.8 ms              | ≈ 24 min                              |
-| 783-64-32-2     | 32.5 ms                    | 3.7 ms              | ≈ 50 min                              |
+| 141-64-5        | 12.6 ms                    | 0.90 ms             | ≈ 11 min                              |
+| 141-64-32-5     | 15.1 ms                    | 1.17 ms             | ≈ 14 min                              |
+| 141-128-64-5    | 35.4 ms                    | 2.85 ms             | ≈ 34 min                              |
+
+A training of the analyzer runs 20 epochs over its file: with `./dataset.sh 2000` and a 141-64-32-5 network, that is about 600,000 positions, around 12 minutes with `-O` and about 2 h 30 without.
 
 See [docs/BENCHMARKS.md](docs/BENCHMARKS.md#cost-of-type-checking) for all the measures.
 

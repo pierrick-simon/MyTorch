@@ -6,14 +6,14 @@
 2. [Experimental protocol](#2-experimental-protocol)
 3. [Overview of the five formats](#3-overview-of-the-five-formats)
 4. [Format descriptions](#4-format-descriptions)
-   1. [Board-FEN (783 inputs)](#41-board-fen--783-inputs)
-   2. [Board-Turn (769 inputs)](#42-board-turn--769-inputs)
-   3. [Dual-View (1551 inputs)](#43-dual-view--1551-inputs)
-   4. [King-Rays (133 inputs)](#44-king-rays--133-inputs)
-   5. [King-Rays-Escape (141 inputs)](#45-king-rays-escape--141-inputs--implemented-format)
+   1. [Board-FEN (783 inputs)](#41-board-fen---783-inputs)
+   2. [Board-Turn (769 inputs)](#42-board-turn---769-inputs)
+   3. [Dual-View (1551 inputs)](#43-dual-view---1551-inputs)
+   4. [King-Rays (133 inputs)](#44-king-rays---133-inputs)
+   5. [King-Rays-Escape (141 inputs)](#45-king-rays-escape---141-inputs-implemented-format)
 5. [Training curves](#5-training-curves)
 6. [Conclusion](#6-conclusion)
-7. [References](#8-references)
+7. [References](#7-references)
 
 ---
 
@@ -50,7 +50,7 @@ patience: 5
 validationInterval: 5000
 ```
 
-The three outputs are `Nothing`, `Check` and `Checkmate`. The colour of the side giving the check is not part of this comparison.
+The three outputs are `Nothing`, `Check` and `Checkmate`. The colour of the side giving the check is not part of this comparison. Since then, the analyzer has 5 outputs, one per label (`Check White`, `Check Black`...): see [CHESS_ANALYZER.md](CHESS_ANALYZER.md#output-encoding).
 
 ## 3. Overview of the five formats
 
@@ -128,9 +128,9 @@ The format does not describe pins, whether a checking piece can be captured or b
 
 ## 5. Training curves
 
-The figure below show accuracy and loss during training for the five formats, with the same dataset and hyperparameters.
+The figure below shows the accuracy and the loss during training for the five formats, with the same dataset and hyperparameters. The values reached by each format are in [BENCHMARKS.md](BENCHMARKS.md#input-formats).
 
-![Accuracy and Loss during training for the five input formats](./input_formats_comparaison.png)
+![Accuracy and Loss during training for the five input formats](images/input_formats_comparaison.png)
 
 ## 6. Conclusion
 
@@ -138,7 +138,7 @@ With the same dataset and the same hyperparameters, **King-Rays-Escape (141 inpu
 
 The reason is the way the information is presented. The raw-board formats (Board-FEN, Board-Turn and Dual-View) describe where every piece stands and leave the network to work out which of them threaten a king. King-Rays-Escape describes the position from the king of the side to move, so the facts that define the state (which pieces attack the king, and which neighbouring squares are free, blocked or attacked) appear in the same place of the input whatever the position on the board. This is also the format implemented in `chessboard.py`.
 
-This study varies only the input format. The effect of the hyperparameters (layer sizes, learning rate, activation functions, …) is the subject of a separate document.
+This study varies only the input format. The hyperparameters (layer sizes, learning rate, activation functions, …) are searched by `my_torch_hyperoptimizer` on top of this encoding: see [Finding the best model](../README.md#finding-the-best-model).
 
 
 ## 7. References

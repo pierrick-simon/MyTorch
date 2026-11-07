@@ -13,17 +13,21 @@ This document explains the main technical decisions of MyTorch, the alternatives
 - [Pickle for the `.nn` format](#pickle-for-the-nn-format)
 - [Runtime type checking with typeguard](#runtime-type-checking-with-typeguard)
 - [Validating chess positions with python-chess](#validating-chess-positions-with-python-chess)
-- [Two output classes for the analyzer](#two-output-classes-for-the-analyzer)
+- [A king-relative input encoding](#a-king-relative-input-encoding)
+- [Five output classes for the analyzer](#five-output-classes-for-the-analyzer)
+- [Balanced epochs](#balanced-epochs)
+- [Checkpoints during training](#checkpoints-during-training)
+- [Random search and successive halving](#random-search-and-successive-halving)
 - [Pluggable bonus tasks](#pluggable-bonus-tasks)
 - [Error handling and exit codes](#error-handling-and-exit-codes)
 
 ## Pure Python, no NumPy
 
-**Choice.** The network is written with Python lists and loops. The only external libraries are for input/output (`pyyaml`, `python-chess`, `click`) and type checking (`typeguard`); none of them does any computation for the network.
+**Choice.** The network is written with Python lists and loops. The only external libraries are for input/output (`pyyaml`, `python-chess`, `click`, `tqdm` for the progress bar), type checking (`typeguard`) and the charts of the benchmarks (`matplotlib`); none of them does any computation for the network.
 
 **Why.** The goal of the project is to build a neural network from scratch. With plain loops, every multiplication of the forward pass and every update of the backpropagation is visible in [`perceptron.py`](../src/my_torch/perceptron.py) and [`MLP.py`](../src/my_torch/MLP.py), and can be read next to the formulas in [ARCHITECTURE.md](ARCHITECTURE.md#backpropagation).
 
-**Cost.** Speed. A forward and backward pass over a 783-32-2 network takes about 1.8 ms with optimisations (`python -O`), where a matrix library would take a few microseconds. This limits the size of the networks and the number of chess positions that can be used in a reasonable time. Moving the inner loops of `Perceptron.tick` and `Perceptron.learn` to vectors would be the first step if speed became the priority.
+**Cost.** Speed. A forward and backward pass over the 141-64-32-5 network of the analyzer takes about 1.2 ms with optimisations (`python -O`), and 1.8 ms for the former 783-32-2 network, where a matrix library would take a few microseconds. This limits the size of the networks and the number of chess positions that can be used in a reasonable time. Moving the inner loops of `Perceptron.tick` and `Perceptron.learn` to vectors would be the first step if speed became the priority.
 
 ## One object per neuron
 
@@ -39,7 +43,7 @@ This document explains the main technical decisions of MyTorch, the alternatives
 
 **Why.** It is the simplest form of gradient descent, it uses no extra memory, and it lets training be stopped at any sample (with `Ctrl+C`) with a usable network. On the truth tables, it is enough: XOR, AND and the 3-bit Hamming distance are learnt perfectly by every tested seed (see [BENCHMARKS.md](BENCHMARKS.md#truth-tables)).
 
-**Cost.** The gradient of a single sample is noisy, so the learning rate must stay small and the order of the samples matters. The analyzer trains in file order, so its training file must be shuffled (see [CHESS_ANALYZER.md](CHESS_ANALYZER.md#training-on-the-dataset)).
+**Cost.** The gradient of a single sample is noisy, so the learning rate must stay small and the order of the samples matters. The analyzer shuffles its positions again at every epoch, with the seed of the network, so the order of the training file does not matter (see [Balanced epochs](#balanced-epochs)).
 
 **Mini-batches.** Averaging the updates of a batch gives a less noisy direction, and the samples of a batch all use the same weights, so their updates could be computed in parallel. The cost is one extra sum per weight in every neuron, and `batchSize` times fewer updates per epoch: the learning rate usually has to be raised. `batchSize: 1` keeps the online code path, so it gives exactly the same networks as before. With `Ctrl+C`, the samples of the unfinished batch are still applied. Since the number of trained positions grows by a whole batch at a time, checkpoints and validations happen on the first batch that reaches their interval.
 
@@ -74,7 +78,7 @@ A single function for the whole network would force a bad compromise in one of t
 
 **Choice.** The generator gives each network the current timestamp as seed, or `seed + N - 1` for copy `N` when the configuration file sets `seed`. The seed is saved inside the `.nn` file.
 
-**Why.** Several networks generated from the same configuration start with different weights, so one can generate a few and keep the best. Since the seed is saved, the same network can be rebuilt, and `my_torch_bonus --eval` uses it to draw the same test cases every time for a given network, so two evaluations of the same file give the same score. Setting `seed` in the configuration file makes a whole run reproducible, which is what comparisons between configurations need.
+**Why.** Several networks generated from the same configuration start with different weights, so one can generate a few and keep the best. Since the seed is saved, the same network can be rebuilt, and the programs reuse it wherever they need randomness: `my_torch_bonus --eval` draws the same test cases every time for a given network, so two evaluations of the same file give the same score, and the analyzer uses it to shuffle the positions and pick its validation set, so training the same network on the same file twice gives the same result. Setting `seed` in the configuration file makes a whole run reproducible, which is what comparisons between configurations need.
 
 ## YAML configuration files
 
@@ -94,7 +98,7 @@ The key that lists the hidden layers is named `hiderLayersLayout`. It is kept wi
 
 - **Security**: loading a pickle file can run arbitrary code. Only trusted `.nn` files should be loaded.
 - **Coupling to the code**: classes are stored by module path, so renaming a module (for example `MLP.py`, which the linter would like in lowercase) makes every existing `.nn` file unloadable. This is why that file keeps its name.
-- **Size**: each weight is a full Python float. A 783-256-64-32-3 network weighs about 2 MB.
+- **Size**: each weight is a full Python float, saved with its last update (`lastDelta`) and its batch sum (`deltaSum`). A 141-64-32-5 network weighs about 300 KB, a 783-256-64-32-3 network about 2 MB.
 
 A text format (JSON with the layout, the activation names and the weights) would remove the first two problems; it would be the right choice if networks had to be shared between people or versions.
 
@@ -120,11 +124,50 @@ A text format (JSON with the layout, the activation names and the weights) would
 
 The network itself never sees `python-chess`: its inputs are built from the FEN string only (see [CHESS_ANALYZER.md](CHESS_ANALYZER.md#input-encoding)).
 
-## Two output classes for the analyzer
+## A king-relative input encoding
 
-**Choice.** The analyzer has two outputs, `Nothing` and `Check`; the four check and checkmate labels are grouped into `Check`.
+**Choice.** The analyzer turns a position into 141 numbers that describe the board as seen from the king of the side to move: the first piece met on each of the 8 rays from the king, the knights and pawns that could attack it, and the state of the 8 squares around it, including whether the enemy attacks them (King-Rays-Escape, see [CHESS_ANALYZER.md](CHESS_ANALYZER.md#input-encoding)).
 
-**Why.** Detecting that a king is attacked is the first problem to solve, and with two balanced classes the accuracy of the network is easy to read. The labels are mapped in `STATE_LABELS` in [`Chessboard.py`](../src/my_torch_analyzer/Chessboard.py): separating checkmate from check, or the colour of the attacker, only means adding entries to the `State` enum and to this table, and using a network with more outputs.
+**Why.** The first encoding, 64 squares × 12 piece planes plus the other FEN fields (783 inputs), left the network to find out which distant squares attack the king. With it, the network barely beat always answering the most common label (see [BENCHMARKS.md](BENCHMARKS.md#learning)). Five encodings were then compared with the same network and the same data, and the king-relative one learnt best and fastest: about 96 % against 60 to 66 % for the raw-board encodings ([BENCHMARKS.md](BENCHMARKS.md#input-formats), [INPUT_FORMATS_COMPARAISON.md](INPUT_FORMATS_COMPARAISON.md)). It is also 5.5 times smaller, so each training step is faster and each encoded position takes about 1.6 KB of memory instead of 17 KB.
+
+**Cost.** The encoding knows some chess: it computes which squares are attacked, which a network on the raw board would have to learn. It does not describe pins, captures of the checking piece or blocks, so the network still has to guess them from the rays. It also only fits questions about the king of the side to move.
+
+## Five output classes for the analyzer
+
+**Choice.** The analyzer has one output per label of the dataset: `Nothing`, `Check White`, `Check Black`, `Checkmate White` and `Checkmate Black`.
+
+**Why.** The labels of the dataset give the state of the position and the side giving the check. With one output per label, the prediction is the label of the highest output, with no rule to add afterwards. The labels are mapped in `STATE_LABELS` and the `State` enum of [`chessboard.py`](../src/my_torch_analyzer/chessboard.py). The first versions had two outputs (`Nothing` and `Check`), then three (`Nothing`, `Check`, `Checkmate`), to start from an easier problem.
+
+**Cost.** The classes are not balanced: in a file built by `dataset.sh`, `Nothing` is twice as frequent as each of the four others, and on the full dataset `Checkmate Black` is the rarest. See [Balanced epochs](#balanced-epochs).
+
+## Balanced epochs
+
+**Choice.** The analyzer trains for 20 epochs. Each epoch is a new shuffle of the training positions, where the positions of the rarer labels are drawn again (with replacement) until each label is as frequent as the most common one, with at most 4 copies of a position on average.
+
+**Why.** With online training, a network sees the most common label most often and learns to answer it by default. Oversampling the others gives every label the same weight in the updates, without throwing positions away. Shuffling inside the analyzer, with the seed of the network, makes the result independent of the order of the file and reproducible.
+
+**Cost.** A rare position can be seen several times per epoch, which makes over-fitting on it easier; the limit of 4 copies (`MAX_OVERSAMPLING`) keeps a label with very few positions from being repeated too much. The number of epochs is a constant (`EPOCHS` in [`train.py`](../src/my_torch_analyzer/train.py)), not a key of the configuration file: the validation and `patience` are the way to stop earlier.
+
+## Checkpoints during training
+
+**Choice.** The analyzer saves the network every 1,000 positions (`model_N.nn`) and, with validation, the best one (`best.nn`), in a directory named after the save file. It empties this directory at the start of each training, and refuses if it holds something other than `.nn` files.
+
+**Why.** A training of several minutes or hours should not have to be run again to know how the network evolved: the checkpoints can be evaluated afterwards on any test file (`benchmarks/checkpoints_csv.py`) and drawn as curves (`benchmarks/checkpoints_plot.py`), or one of them can be kept if the end of the training made things worse. Refusing to empty a directory with other files protects files that the analyzer did not write.
+
+**Cost.** Disk space: one `.nn` file per 1,000 positions (about 300 KB each for a 141-64-32-5 network, so about 180 MB for a training of 600,000 positions). The `checkpoints.csv` written by the benchmark script in the same directory must be removed before training again with the same save file.
+
+## Random search and successive halving
+
+**Choice.** `my_torch_hyperoptimizer` draws 27 configurations at random, trains them all on 5,000 positions, keeps the best third, trains them 3 times longer, and so on until 3 or fewer are left. Everything is set in constants, with no command line.
+
+**Why.**
+
+- **Random search rather than a grid**: with 7 hyperparameters, a grid of only 3 values each is already 2,187 trainings. A random draw tries a new value of every hyperparameter at each configuration, so the ones that matter (usually the learning rate) are explored much better for the same number of trainings. The learning rate is drawn on a log scale, since 0.001 and 0.01 differ as much as 0.01 and 0.1.
+- **Successive halving**: most bad configurations are already bad after a short training. Stopping them early leaves the budget to the promising ones: 27 × 5,000 + 9 × 10,000 + 3 × 30,000 additional positions, instead of 27 × 45,000 for a full training of each.
+- **Same seed for every configuration, same data for every run**: the differences of score come from the hyperparameters, not from a lucky initialisation or a lucky sample of positions.
+- **No command line**: the search has many settings that are changed together and rarely; one commented file ([constants.py](../src/my_torch_hyperoptimizer/constants.py)) is simpler to read and edit than a dozen options.
+
+**Cost.** A configuration that learns slowly but ends up better can be eliminated in the first round. The scores come from short trainings, so they rank the configurations but do not give the accuracy of a fully trained network. The search runs in one process, one configuration after the other.
 
 ## Pluggable bonus tasks
 

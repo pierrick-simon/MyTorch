@@ -12,15 +12,15 @@ This document explains how MyTorch is organised and how a neural network works i
 
 ## Overview
 
-MyTorch is made of one library and three programs built on top of it:
+MyTorch is made of one library and four programs built on top of it:
 
 ```
                  config.yml
                      │
                      ▼
-           ┌───────────────────┐
+           ┌────────────────────┐
            │ my_torch_generator │  builds untrained networks
-           └───────────────────┘
+           └────────────────────┘
                      │  model_1.nn, model_2.nn, ...
                      ▼
      ┌───────────────────────────────┐
@@ -31,13 +31,19 @@ MyTorch is made of one library and three programs built on top of it:
 │  chess positions  │       │  truth tables  │
 │  --train/--predict│       │  --train/--eval│
 └───────────────────┘       └────────────────┘
+     ▲                               │
+     │ best.yml                      │
+┌─────────────────────────┐          │
+│ my_torch_hyperoptimizer │          │
+│ searches the best yml   │          │
+└─────────────────────────┘          │
      │                               │
      └──────────────┬────────────────┘
                     ▼
           src/my_torch (MLP, Perceptron, activation functions)
 ```
 
-Every program loads and saves networks the same way (`MLP.load` / `MLP.save`), so a network made by the generator can be trained by either program.
+Every program loads and saves networks the same way (`MLP.load` / `MLP.save`), so a network made by the generator can be trained by either program. The hyperoptimizer builds its networks directly with `MLP` and reuses the training functions of the analyzer; its result is a configuration file, `best.yml`, that goes through the generator like any other.
 
 ## Repository layout
 
@@ -47,10 +53,12 @@ Every program loads and saves networks the same way (`MLP.load` / `MLP.save`), s
 ├── my_torch_analyzer           # entry point → src/my_torch_analyzer/main.py
 ├── my_torch_bonus              # entry point → src/bonus/main.py
 ├── my_torch_hyperoptimizer     # entry point → src/my_torch_hyperoptimizer/main.py
+├── Makefile                    # links the four entry points to the root
 ├── requirements.txt
 ├── dataset.zip                 # chess positions (see CHESS_ANALYZER.md)
+├── dataset.sh                  # builds a balanced, shuffled chess file from dataset/
 ├── docs/                       # this documentation
-├── benchmarks/                 # scripts used for BENCHMARKS.md
+├── benchmarks/                 # scripts used for BENCHMARKS.md, checkpoint evaluation and charts
 └── src/
     ├── my_torch/               # the neural network library
     │   ├── MLP.py              # multi-layer perceptron: forward, backprop, save/load
@@ -62,8 +70,8 @@ Every program loads and saves networks the same way (`MLP.load` / `MLP.save`), s
     ├── my_torch_analyzer/
     │   ├── main.py             # argument parsing (argparse), error handling
     │   ├── fen_parser.py       # reads and validates a file of FEN lines
-    │   ├── chessboard.py       # FEN → 783 input values, label → expected output
-    │   ├── train.py            # one pass of online training over the file
+    │   ├── chessboard.py       # FEN → 141 input values (King-Rays-Escape), label → 5 expected outputs
+    │   ├── train.py            # epochs with oversampling, checkpoints, validation and patience
     │   └── predict.py          # prints one prediction per line
     ├── my_torch_hyperoptimizer/
     │   ├── main.py             # runs the search, writes the results
@@ -81,7 +89,9 @@ Every program loads and saves networks the same way (`MLP.load` / `MLP.save`), s
         └── tables/             # one module per task: and, xor, hamming
 ```
 
-The three executables at the root are three-line Python scripts that call the `main()` of their package and exit with its return value. They use `.venv/bin/python` as interpreter, so they must be run from the root of the repository.
+The four executables at the root are hard links, made by `make`, to the `entry_point` file of their package: a few lines of Python that call its `main()` and exit with its return value. They use `.venv/bin/python` as interpreter, so they must be run from the root of the repository. `make fclean` removes them.
+
+The hyperoptimizer writes its files into `hyperopt/`, and the analyzer writes its checkpoints into a directory named after its save file. Git ignores `hyperopt/`, and every `.nn`, `.yml`, `.csv`, `train.txt` and `test.txt` file, so these outputs are never committed by mistake.
 
 ## The `my_torch` library
 
@@ -203,10 +213,15 @@ Because pickle stores classes by their module path, the files only load if the m
 
 ### `my_torch_analyzer`
 
-1. `argparse` reads `--predict` or `--train [--save SAVEFILE]`, `LOADFILE` and `CHESSFILE`. Any error exits with code `84`.
-2. `fen_parser` reads `CHESSFILE` line by line. Each line is checked by `python-chess` (legal position, known label) and converted to a `Chessboard`.
-3. `--train`: every line must have a label. The network sees each position once, in file order, then is saved to `SAVEFILE` (or back to `LOADFILE`). `Ctrl+C` stops the training early and still saves.
-4. `--predict`: one line is printed per position, the label of the output with the highest value.
+1. `argparse` reads `--predict` or `--train [--save SAVEFILE]`, `LOADFILE` and `CHESSFILE`. Any error exits with code `84`; `--save` without `--train` too.
+2. `fen_parser` reads `CHESSFILE` line by line. Each line is checked by `python-chess` (legal position, known label) and converted to a `Chessboard`, which computes its 141 inputs and its expected output once.
+3. `--train`: every line must have a label. `train` in [train.py](../src/my_torch_analyzer/train.py):
+   - `prepareSaveDir` creates or empties the checkpoint directory (`SAVEFILE` without `.nn`), and refuses if it holds anything other than `.nn` files;
+   - the positions are shuffled with the seed of the network, and `splitValidation` sets aside 10 % of them (at most 500) if the network has a `patience`;
+   - for each of the `EPOCHS` (20), `balancedEpoch` builds a shuffled epoch where the rarer labels are oversampled (at most `MAX_OVERSAMPLING` = 4 times each position), and `trainBatch` trains it `batchSize` positions at a time (`learn` for one position, `accumulate` then `step` for more);
+   - every `CHECKPOINT_EVERY` (1,000) positions the network is saved as `model_N.nn`; every `validationInterval` positions `checkPatience` measures the accuracy on the validation set, saves `best.nn` when it improves and, after `patience` validations in a row below the best, asks whether to stop (`proposeStop`, with `click`);
+   - the network is saved to `SAVEFILE` (or back to `LOADFILE`): the last one, or `best.nn` if it is better. `Ctrl+C` stops the training early and still saves.
+4. `--predict`: one line is printed per position, the label of the output with the highest value (`getStateStr`).
 
 The input encoding is described in [CHESS_ANALYZER.md](CHESS_ANALYZER.md).
 

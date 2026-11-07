@@ -1,12 +1,13 @@
 # Chess analyzer
 
-`my_torch_analyzer` trains a neural network to tell, from a chess position, whether a king is in check. This document describes the input files, how a position is turned into numbers for the network, and how to train a network on the provided dataset.
+`my_torch_analyzer` trains a neural network to tell, from a chess position, whether a king is in check or checkmate, and which side gives it. This document describes the input files, how a position is turned into numbers for the network, how a training goes, and how to train a network on the provided dataset.
 
 - [Usage](#usage)
 - [Input file format](#input-file-format)
 - [Input encoding](#input-encoding)
 - [Output encoding](#output-encoding)
 - [Dataset](#dataset)
+- [How a training goes](#how-a-training-goes)
 - [Training on the dataset](#training-on-the-dataset)
 
 ## Usage
@@ -17,7 +18,7 @@
 
 | Argument          | Description                                                                                  |
 |-------------------|----------------------------------------------------------------------------------------------|
-| `--train`         | Train the network `LOADFILE` on every position of `CHESSFILE`, then save it.                  |
+| `--train`         | Train the network `LOADFILE` on the positions of `CHESSFILE` (20 epochs), then save it.       |
 | `--predict`       | Print one prediction per position of `CHESSFILE`.                                             |
 | `--save SAVEFILE` | With `--train` only: save the trained network into `SAVEFILE` instead of `LOADFILE`.          |
 | `LOADFILE`        | A `.nn` file, for example made by `my_torch_generator`.                                       |
@@ -26,13 +27,15 @@
 
 The program exits with code `84` when the arguments are invalid, when a file cannot be read, when a line of `CHESSFILE` is not a legal position, or when a line has no label in training mode.
 
-Pressing `Ctrl+C` during training stops it and saves the network trained so far. Pressing it during prediction stops printing.
+Pressing `Ctrl+C` during training stops it and saves the network trained so far (or the best one, if validation found a better one). Pressing it during prediction stops printing.
+
+In training mode, the analyzer also writes a directory named after `SAVEFILE` without `.nn` (or after `LOADFILE` when `--save` is not given), with a checkpoint every 1,000 positions and, with validation, the best network: see [Checkpoints](#checkpoints).
 
 ### Validation during training
 
 Validation only runs for networks generated with a `patience` key in their configuration file. Without it, every position of `CHESSFILE` is trained on and nothing below happens.
 
-Before training, the analyzer keeps 10 % of `CHESSFILE` aside, at most 500 positions, drawn at random from the seed of the network. These positions are never trained on: they measure how the network does on positions it has not seen.
+Before training, the analyzer keeps 10 % of `CHESSFILE` aside, at most 500 positions, drawn at random with the seed of the network. These positions are never trained on: they measure how the network does on positions it has not seen.
 
 Every `validationInterval` training positions (a key of the configuration file, 5,000 by default), the analyzer computes the accuracy on these positions (the share of positions where the highest output is the expected label) and shows it next to the progress bar, with the best accuracy so far. Each time the best is beaten, the network is saved in `<SAVEFILE without .nn>/best.nn`.
 
@@ -60,42 +63,41 @@ Every line is checked with [`python-chess`](https://python-chess.readthedocs.io/
 
 ## Input encoding
 
-Each position becomes a vector of **783** numbers between `0` and `1`, so a network for the analyzer must have `nbInputs: 783`.
+Each position becomes a vector of **141** numbers between `0` and `1`, so a network for the analyzer must have `nbInputs: 141`. The encoding is called **King-Rays-Escape**: instead of describing the 64 squares, it describes the board as seen from the king of the side to move, since a check is a property of that king.
 
-| Part             | Size | Encoding                                                                                       |
-|------------------|------|------------------------------------------------------------------------------------------------|
-| Pieces           | 768  | 64 squares × 12 values: one-hot of the piece on the square (6 piece types × 2 colours), all `0` on an empty square |
-| Side to move     | 1    | `1` if white plays, `0` if black plays                                                          |
-| Castling rights  | 4    | one value per right, in the order `K`, `Q`, `k`, `q`                                            |
-| En passant       | 8    | one-hot of the file (`a` to `h`) of the en passant square, all `0` if there is none             |
-| Halfmove clock   | 1    | `min(halfmove, 100) / 100`                                                                      |
-| Fullmove number  | 1    | `min(fullmove, 200) / 200`                                                                      |
+| Group                | Inputs | Content                                                                                   |
+|----------------------|-------:|-------------------------------------------------------------------------------------------|
+| Rays                 | 104    | 8 directions from the king × (first piece met: 12 kinds, own/enemy × 6 types, + its distance / 7) |
+| Knight squares       | 8      | An enemy knight is on the square, one input per knight jump from the king                 |
+| Pawn squares         | 2      | An enemy pawn is on a square that attacks the king                                        |
+| Neighbouring squares | 16     | 8 squares around the king × (off the board, own piece on it)                              |
+| Escape squares       | 8      | 8 squares around the king × (attacked by the enemy, with the king removed from the board) |
+| King                 | 3      | King row / 7, king column / 7, `1` if white plays                                         |
 
-Squares are read in FEN order: from `a8` to `h8`, then rank 7, down to `h1`. For each square, the 12 values are ordered king, queen, rook, bishop, knight, pawn, first for black then for white.
+- Pieces are *own* or *enemy* (relative to the side to move), never white or black, so the same pattern means the same thing for both colours.
+- The escape squares are tested with the king removed: a rook giving check along a line also attacks the square behind the king, which would otherwise look like a safe retreat.
+- The castling rights, the en passant square and the move counters of the FEN line are not used: they do not change whether the king is attacked.
+- The input never contains the answer: the network still has to learn how these facts combine, for example whether a checking piece can be captured or blocked.
 
-> Up to commit `adc7c32`, `Color.getColor` returned `BLACK` for every piece, so the two colours could not be told apart. It is fixed since commit `2cdd908`; [BENCHMARKS.md](BENCHMARKS.md#learning) measures the effect of the fix.
+This encoding was chosen after comparing five of them with the same network and the same data; [INPUT_FORMATS_COMPARAISON.md](INPUT_FORMATS_COMPARAISON.md) describes them, the attack test, and the training curves of each. The previous encoding (783 inputs: 64 squares × 12 piece planes plus the other FEN fields) is the one measured in [BENCHMARKS.md](BENCHMARKS.md#learning).
 
-Why this encoding:
-
-- **One-hot pieces** rather than one number per square (for example `1` for a pawn, `9` for a queen): a number would tell the network that a queen is "nine pawns", an order that does not exist for the question "is the king attacked?". With one-hot values each piece type has its own weights for every square, which is what the network needs to learn which pieces attack which squares.
-- **Every FEN field is kept**, even those that do not change whether a king is in check (castling, en passant, clocks): they cost 15 inputs out of 783, and keep the encoding useful for other questions about the same positions.
-- **Values between 0 and 1**: the clocks are divided by a maximum so that no input is much larger than the others, which would make its weights dominate the first updates.
-
-The encoding is done in [`chessboard.py`](../src/my_torch_analyzer/chessboard.py).
+The encoding is done in [`chessboard.py`](../src/my_torch_analyzer/chessboard.py): `NB_INPUTS` gives its size and `_kingRelativeInput` builds the vector.
 
 ## Output encoding
 
-The network has **3 outputs**:
+The network has **5 outputs**, one per label:
 
-| Output | Label                                                |
-|--------|------------------------------------------------------|
-| `0`    | `Nothing`                                            |
-| `1`    | `Check` (`Check White` or `Check Black`)             |
-| `2`    | `Checkmate` (`Checkmate White` or `Checkmate Black`) |
+| Output | Label             |
+|--------|-------------------|
+| `0`    | `Nothing`         |
+| `1`    | `Check White`     |
+| `2`    | `Check Black`     |
+| `3`    | `Checkmate White` |
+| `4`    | `Checkmate Black` |
 
-In training, the expected output is `[1, 0, 0]`, `[0, 1, 0]` or `[0, 0, 1]`. In prediction, the program prints the label of the output with the highest value: `Nothing`, `Check` or `Checkmate`. A network for the analyzer must therefore have `nbOutputs: 3`; with any other number, training stops with an error because the outputs and the expected outputs do not have the same length.
+In training, the expected output is `1` for the label of the position and `0` for the four others. In prediction, the program prints the label of the output with the highest value. A network for the analyzer must therefore have `nbOutputs: 5`; with any other number, training stops with an error because the outputs and the expected outputs do not have the same length.
 
-A `Sigmoid` output layer fits this encoding: each output is between 0 and 1, like the expected values.
+A `Sigmoid` output layer fits this encoding: each output is between 0 and 1, like the expected values. The labels are listed in `STATE_LABELS` and the `State` enum of [`chessboard.py`](../src/my_torch_analyzer/chessboard.py).
 
 ## Dataset
 
@@ -114,52 +116,74 @@ A `Sigmoid` output layer fits this encoding: each output is between 0 and 1, lik
 | `checkmate/many_pieces.txt`   | 28,632    | `Checkmate White` / `Checkmate Black` |
 
 ```sh
-unzip dataset.zip    # creates dataset/
+unzip dataset.zip    # creates dataset/, done automatically by dataset.sh
 ```
+
+In a file built by `dataset.sh`, a third of the positions are `Nothing`, a third `Check White` or `Check Black` and a third `Checkmate White` or `Checkmate Black`: the analyzer oversamples the rarer labels during training (see [How a training goes](#how-a-training-goes)).
+
+## How a training goes
+
+1. `CHESSFILE` is parsed and encoded in full before the training starts (about 0.13 ms and 1.6 KB per position with `-O`: the whole dataset would take about 1.2 GB).
+2. The positions are shuffled with the seed of the network. With `patience`, the validation positions are set aside (see [Validation during training](#validation-during-training)).
+3. The network is trained for **20 epochs** (`EPOCHS` in [`train.py`](../src/my_torch_analyzer/train.py)). Each epoch is a new shuffle of the training positions where the rarer labels are drawn again, with replacement, until they are as many as the most common one, without taking any position more than 4 times (`MAX_OVERSAMPLING`). The network does not learn to always answer `Nothing` just because it is the most common label.
+4. The positions are sent one by one, or by groups of `batchSize` when the configuration sets it.
+5. At the end, the last network is saved into `SAVEFILE`, or the best one if validation found a better one.
+
+### Checkpoints
+
+The analyzer saves the network every 1,000 positions (`CHECKPOINT_EVERY`), starting before the first one: `model_0.nn`, `model_1000.nn`, `model_2000.nn`... in the directory named after `SAVEFILE` without `.nn`. With `patience`, the best network on the validation set is also saved there as `best.nn`.
+
+- The directory is emptied at the start of each training. If it contains a file that is not a `.nn` file, the analyzer refuses to start, so that it never deletes something it did not write. If a file (not a directory) already has its name, it refuses as well.
+- Each checkpoint is a normal `.nn` file: it can be used with `--predict`, or trained again.
+- [`benchmarks/checkpoints_csv.py`](../benchmarks/checkpoints_csv.py) evaluates every checkpoint on the same positions and writes `checkpoints.csv` in the directory; [`benchmarks/checkpoints_plot.py`](../benchmarks/checkpoints_plot.py) draws its accuracy and loss curves. See [BENCHMARKS.md](BENCHMARKS.md#training-curves). Remove `checkpoints.csv` before training again with the same `SAVEFILE`.
 
 ## Training on the dataset
 
-The analyzer trains in **one pass, in file order**. Since each file of the dataset holds a single label, training on one file after the other would teach the network to always answer the last label it saw. Mix and shuffle the files first, and keep some positions aside to check the network on positions it has never seen:
+`dataset.sh` builds a training file with the same number of positions from each of the 9 files of the dataset:
+
+```sh
+./dataset.sh 2000 train.txt    # 18,000 positions
+./dataset.sh 300 test.txt      # 2,700 positions to test the network
+```
+
+It picks the positions at random without a seed, so `test.txt` may share a few positions with `train.txt`. To get a test file with no position in common, split one shuffled file instead:
 
 ```sh
 cat dataset/*/*.txt | shuf > all.txt
 head -n 20000 all.txt > test.txt
-tail -n +20001 all.txt > train.txt
+tail -n +20001 all.txt | head -n 50000 > train.txt
 ```
 
-Write a configuration with 783 inputs and 3 outputs, for example `chess.yml`:
+Write a configuration with 141 inputs and 5 outputs, for example `chess.yml` (the configuration used to compare the input encodings):
 
 ```yaml
-nbInputs: 783
-nbOutputs: 3
+nbInputs: 141
+nbOutputs: 5
 hiderLayersLayout:
+  - 64
   - 32
-learningRate: 0.05
-hiddenActivationFunction: Sigmoid
+learningRate: 0.01
+hiddenActivationFunction: LeakyReLU
 outputActivationFunction: Sigmoid
+momentum: 0.5
+initialBias: 0
+seed: 42
 patience: 5
-validationInterval: 1000
+validationInterval: 5000
 ```
 
-With `patience` and `validationInterval`, the analyzer checks the network every 1,000 positions on positions it does not train on, and offers to stop if it gets worse 5 times in a row (see [Validation during training](#validation-during-training)).
+With `patience` and `validationInterval`, the analyzer checks the network every 5,000 positions on positions it does not train on, and offers to stop if it gets worse 5 times in a row (see [Validation during training](#validation-during-training)).
 
 Then generate, train and predict:
 
 ```sh
 ./my_torch_generator chess.yml 1
-./my_torch_analyzer --train --save chess_trained.nn chess_1.nn train.txt
-./my_torch_analyzer --predict chess_trained.nn test.txt > predictions.txt
+.venv/bin/python -O my_torch_analyzer --train --save chess_trained.nn chess_1.nn train.txt
+.venv/bin/python -O my_torch_analyzer --predict chess_trained.nn test.txt > predictions.txt
 ```
 
-To train for several passes (epochs), run `--train` again on the trained network, ideally after shuffling `train.txt` again.
+To measure the accuracy on `test.txt`, compare `predictions.txt` with the labels of `test.txt`, or run `benchmarks/checkpoints_csv.py chess_trained test.txt`, whose `best` row is the accuracy of `best.nn`.
 
-The whole file is parsed before training starts, and each position takes about 17 KB of memory once encoded: the full dataset would need about 12 GB. Train on chunks instead, one after the other, with the same network:
+To train longer, run `--train` again on the trained network, with another `--save` so that the checkpoints of the first training are not deleted. To choose the configuration itself (layers, learning rate, activation functions...), `my_torch_hyperoptimizer` tries many of them automatically: see [Finding the best model](../README.md#finding-the-best-model).
 
-```sh
-split -l 50000 train.txt chunk_
-for f in chunk_*; do
-    .venv/bin/python -O my_torch_analyzer --train chess_1.nn "$f"
-done
-```
-
-Training speed depends a lot on the size of the network and on how Python is run; see [BENCHMARKS.md](BENCHMARKS.md) before choosing a network for the full dataset.
+Training speed depends a lot on the size of the network and on how Python is run (always use `-O` for long trainings); see [BENCHMARKS.md](BENCHMARKS.md#speed) before choosing a network for the full dataset.
