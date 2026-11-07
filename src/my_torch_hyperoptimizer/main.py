@@ -3,13 +3,19 @@ import sys
 
 from typeguard import typechecked
 
-from src.my_torch_hyperoptimizer.constants import BEST_YML_PATH, NB_TRIALS, RESULTS_PATH, SEED
+from src.my_torch_hyperoptimizer.constants import (
+    BEST_YML_PATH,
+    NB_TRIALS,
+    RESULTS_PATH,
+    SEED,
+)
 from src.my_torch_hyperoptimizer.dataset import loadData
 from src.my_torch_hyperoptimizer.halving import successiveHalving
 from src.my_torch_hyperoptimizer.network import writeYml
 from src.my_torch_hyperoptimizer.results import writeResults
 from src.my_torch_hyperoptimizer.search_space import sampleConfig
 from src.my_torch_hyperoptimizer.trial import Trial
+
 
 @typechecked
 def main() -> int:

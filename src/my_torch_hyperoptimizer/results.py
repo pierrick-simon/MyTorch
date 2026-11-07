@@ -5,6 +5,7 @@ from typeguard import typechecked
 from src.my_torch_hyperoptimizer.search_space import SEARCH_SPACE
 from src.my_torch_hyperoptimizer.trial import Trial
 
+
 @typechecked
 def writeResults(trials: list[Trial], path: str) -> None:
     """One row per configuration and per rung it reached, best first inside each rung."""

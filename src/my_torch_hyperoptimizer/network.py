@@ -3,7 +3,13 @@ from typeguard import typechecked
 
 from src.my_torch.activationClasses import ActivationClassNames
 from src.my_torch.MLP import MLP
-from src.my_torch_hyperoptimizer.constants import NB_INPUTS, NB_OUTPUTS, PATIENCE, VALIDATION_INTERVAL
+from src.my_torch_hyperoptimizer.constants import (
+    NB_INPUTS,
+    NB_OUTPUTS,
+    PATIENCE,
+    VALIDATION_INTERVAL,
+)
+
 
 @typechecked
 def buildNetwork(config: dict, seed: int) -> MLP:

@@ -4,6 +4,7 @@ from src.my_torch_analyzer.chessboard import Chessboard
 from src.my_torch_hyperoptimizer.constants import ETA, MIN_BUDGET
 from src.my_torch_hyperoptimizer.trial import Trial
 
+
 @typechecked
 def successiveHalving(trials: list[Trial], train: list[Chessboard], validation: list[Chessboard]) -> tuple[Trial, float]:
     """Train every trial on the budget, keep the best 1/ETA, multiply the budget by ETA.
