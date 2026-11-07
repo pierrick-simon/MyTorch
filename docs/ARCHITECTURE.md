@@ -46,6 +46,7 @@ Every program loads and saves networks the same way (`MLP.load` / `MLP.save`), s
 ├── my_torch_generator          # entry point → src/my_torch_generator/main.py
 ├── my_torch_analyzer           # entry point → src/my_torch_analyzer/main.py
 ├── my_torch_bonus              # entry point → src/bonus/main.py
+├── my_torch_hyperoptimizer     # entry point → src/my_torch_hyperoptimizer/main.py
 ├── requirements.txt
 ├── dataset.zip                 # chess positions (see CHESS_ANALYZER.md)
 ├── docs/                       # this documentation
@@ -64,6 +65,15 @@ Every program loads and saves networks the same way (`MLP.load` / `MLP.save`), s
     │   ├── chessboard.py       # FEN → 783 input values, label → expected output
     │   ├── train.py            # one pass of online training over the file
     │   └── predict.py          # prints one prediction per line
+    ├── my_torch_hyperoptimizer/
+    │   ├── main.py             # runs the search, writes the results
+    │   ├── constants.py        # every setting of the search (seed, dataset size, budgets...)
+    │   ├── search_space.py     # SEARCH_SPACE and random draw of a configuration
+    │   ├── network.py          # configuration → MLP, configuration → .yml
+    │   ├── dataset.py          # dataset.sh file, built once, split into training / validation
+    │   ├── trial.py            # one configuration, trained a bit more at each call
+    │   ├── halving.py          # successive halving
+    │   └── results.py          # results.csv
     └── bonus/
         ├── main.py             # argument checks, loads the task module
         ├── train.py            # generic training loop with Ctrl+C menu
@@ -208,3 +218,12 @@ The input encoding is described in [CHESS_ANALYZER.md](CHESS_ANALYZER.md).
 4. `--eval` draws `N` random rows and prints the share of outputs closer to the expected value than the tolerance.
 
 Adding a task means adding one file in `src/bonus/tables/`, with no change to `main.py`.
+
+### `my_torch_hyperoptimizer`
+
+1. `loadData` builds `hyperopt/dataset_<PER_FILE>.txt` with `dataset.sh` if it does not exist yet, parses it with `fen_parser`, and keeps its first `VALIDATION_RATIO` as validation set (`dataset.sh` already shuffled it).
+2. `NB_TRIALS` configurations are drawn by `sampleConfig` with a `random.Random(SEED)`. Each one becomes a `Trial`: its configuration, its `MLP` (built with `SEED`), its own random generator, and where it is in its current epoch.
+3. `successiveHalving` calls `Trial.train(data, budget)` on every trial, which continues the training until the network has seen `budget` positions in total, then `Trial.score` (the analyzer's `accuracy` on the validation set). The best `1/ETA` are kept and the budget is multiplied by `ETA`, until `ETA` trials or fewer are left.
+4. `writeResults` writes every score of every trial in `hyperopt/results.csv`, and `writeYml` the configuration of the winner in `hyperopt/best.yml`.
+
+The search runs in a single process. `MLP.__init__` reseeds the global `random` module, so the configurations are drawn with their own `random.Random` instance.

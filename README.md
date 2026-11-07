@@ -11,6 +11,7 @@ MyTorch is a neural network library written from scratch in pure Python (multi-l
 | `my_torch_generator` | Creates untrained networks (`.nn` files) from YAML configuration files.         |
 | `my_torch_analyzer`  | Trains a network on chess positions, or uses it to tell whether a king is in check. |
 | `my_torch_bonus`     | Trains and evaluates a network on small truth tables (AND, XOR, Hamming distance). |
+| `my_torch_hyperoptimizer` | Searches the best hyperparameters for the chess analyzer (random search + successive halving). |
 
 ### Documentation
 
@@ -284,6 +285,84 @@ Running Python with the `-O` option (the capital letter O, not zero) disables th
 | 783-64-32-2     | 32.5 ms                    | 3.7 ms              | ≈ 50 min                              |
 
 See [docs/BENCHMARKS.md](docs/BENCHMARKS.md#cost-of-type-checking) for all the measures.
+
+## Finding the best model
+
+Training a chess network takes long, so trying configurations by hand is slow. `my_torch_hyperoptimizer` tries many configurations automatically and keeps the best one. This section goes from the search to a chart of the training of the best configuration found.
+
+```sh
+.venv/bin/python -O my_torch_hyperoptimizer
+```
+
+The program takes no argument: everything is set in [src/my_torch_hyperoptimizer/constants.py](src/my_torch_hyperoptimizer/constants.py). Always run it with `-O` (see [Optimized mode](#optimized-mode--o)): it trains hundreds of thousands of positions.
+
+### How the search works
+
+1. **Data**: `dataset.sh PER_FILE` builds `hyperopt/dataset_PER_FILE.txt` (9,000 positions by default). The file is built only once and reused by the next runs, since `dataset.sh` picks at random: every run compares the configurations on the same positions. The first `VALIDATION_RATIO` (20 %) of the file is the validation set, used only to score the configurations, never to train them.
+2. **Random search**: `NB_TRIALS` configurations (27 by default) are drawn at random from `SEARCH_SPACE` in [search_space.py](src/my_torch_hyperoptimizer/search_space.py): hidden layers, learning rate (drawn on a log scale), momentum, hidden activation function, initial bias and batch size. Every network starts from the same `SEED`, so for a same layout the differences of score come from the hyperparameters and not from a lucky initialisation.
+3. **Successive halving**: every configuration is trained on `MIN_BUDGET` positions (5,000) and scored on the validation set. Only the best third (`ETA = 3`) is kept, trained `ETA` times longer (it continues from where it stopped, it does not restart), and scored again:
+
+| Rung | Configurations | Positions seen by each |
+|------|---------------:|-----------------------:|
+| 1    | 27             | 5,000                  |
+| 2    | 9              | 15,000                 |
+| 3    | 3              | 45,000                 |
+
+Once `ETA` configurations or fewer are left, the best one wins. Bad configurations only cost 5,000 positions each, and only the promising ones get long trainings. The networks are trained the same way as by the analyzer (`balancedEpoch` and `trainBatch` of [train.py](src/my_torch_analyzer/train.py)). A network whose weights explode (`OverflowError`) gets a score of 0 %.
+
+The search takes about 15 to 30 minutes with the default values, depending on the layouts drawn. It writes:
+
+- `hyperopt/results.csv`: one row per configuration and per rung it reached, with its validation accuracy (columns `id,positions,accuracy,` then the hyperparameters). The `id` stays the same from one rung to the next, to follow a configuration.
+- `hyperopt/best.yml`: the winning configuration, ready for `my_torch_generator`, with `patience: 5` and `validationInterval: 5000` so the analyzer keeps a validation set during the long training.
+
+The scores of the search come from short trainings: they rank the configurations, they do not tell the accuracy of a fully trained network. The steps below measure it.
+
+### From the search to the training chart
+
+1. **Search the best configuration:**
+
+```sh
+make
+.venv/bin/python -O my_torch_hyperoptimizer
+```
+
+2. **Build a training file and a test file.** The test file is used only to measure the network, on positions it was never trained on:
+
+```sh
+./dataset.sh 2000 train.txt
+./dataset.sh 300 test.txt
+```
+
+3. **Generate the network** of the best configuration:
+
+```sh
+./my_torch_generator hyperopt/best.yml 1
+# -> hyperopt/best_1.nn
+```
+
+4. **Train it.** The analyzer saves a checkpoint `model_N.nn` every 1,000 positions in the directory named after `--save` (`hyperopt_best/` here), plus the best network on its validation set in `best.nn`:
+
+```sh
+.venv/bin/python -O my_torch_analyzer --train --save hyperopt_best.nn hyperopt/best_1.nn train.txt
+```
+
+5. **Evaluate every checkpoint on the test file.** This writes `hyperopt_best/checkpoints.csv` (columns `iteration,accuracy,loss`, and a last row `best` for `best.nn`):
+
+```sh
+.venv/bin/python -O benchmarks/checkpoints_csv.py hyperopt_best test.txt
+```
+
+6. **Draw the chart** of the improvement during the training: the accuracy and the loss on the test file at each checkpoint, with the `best` row as a dashed line:
+
+```sh
+.venv/bin/python benchmarks/checkpoints_plot.py hyperopt_best/checkpoints.csv -o docs/images/hyperoptimizer.png
+```
+
+The `best` row of `checkpoints.csv` is the final result: the accuracy on the test file of the network the analyzer kept.
+
+- `checkpoints.csv` is not a `.nn` file, so a new `--train` with the same `--save` refuses to overwrite the directory: delete `checkpoints.csv` first.
+- `dataset.sh` picks at random from the same files each time, so `test.txt` may share a few positions with `train.txt` or with the search dataset, which makes the test score a little too high.
+- To search other values, edit `SEARCH_SPACE` in [search_space.py](src/my_torch_hyperoptimizer/search_space.py); the columns of `results.csv` follow it. To search longer, raise `NB_TRIALS` (keep a power of `ETA`: 9, 27, 81) or `MIN_BUDGET` in [constants.py](src/my_torch_hyperoptimizer/constants.py). Delete `hyperopt/dataset_*.txt` to draw new positions.
 
 ## Bonus
 
