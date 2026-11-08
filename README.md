@@ -334,6 +334,7 @@ The search takes about 15 to 30 minutes with the default values, depending on th
 
 - `hyperopt/results.csv`: one row per configuration and per rung it reached, with its validation accuracy (columns `id,positions,accuracy,` then the hyperparameters). The `id` stays the same from one rung to the next, to follow a configuration.
 - `hyperopt/best.yml`: the winning configuration, ready for `my_torch_generator`, with `patience: 5` and `validationInterval: 5000` so the analyzer keeps a validation set during the long training.
+- `hyperopt/trials/`: every configuration saves a checkpoint every `CHECKPOINT_EVERY` positions (2,500) in `trial_<id>/`. After the search, they are evaluated on the validation set by `benchmarks/checkpoints_csv.py` (`trial_<id>/checkpoints.csv`), and `benchmarks/checkpoints_plot.py` draws `rung_<N>.png`: the curves of the configurations that reached rung N, each stopping where its configuration was eliminated. The directory is emptied at the start of each search.
 
 The scores of the search come from short trainings: they rank the configurations, they do not tell the accuracy of a fully trained network. The steps below measure it.
 
