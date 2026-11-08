@@ -1,13 +1,14 @@
 # external lib for all projects in my_torch
 typeguard
+click
 
-# external lib for my_torch_analyzer project
+# external lib for my_torch_analyzer (also used by my_torch_hyperoptimizer)
 chess==1.11.2
 tqdm
 
-# external lib for my_torch_generator the project
+# external lib for my_torch_generator and my_torch_hyperoptimizer (.yml files)
 pyyaml
-click
 
-# external lib for the charts of benchmarks/plots.py
+# external libs for benchmarks/ (charts, also drawn by my_torch_hyperoptimizer, and the NumPy prototype)
 matplotlib
+numpy
