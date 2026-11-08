@@ -83,7 +83,7 @@ This document justifies the major decisions of MyTorch: for each one, what we ch
 
 ## Size of the network and the other hyperparameters
 
-**Choice.** The hyperparameters are found by `my_torch_hyperoptimizer`, which searches the layers, the learning rate, the momentum, the hidden activation, the initial bias and the batch size (random search, then successive halving, see [DESIGN_CHOICES.md](DESIGN_CHOICES.md#random-search-and-successive-halving)). Its result, `hyperopt/best.yml`, goes through the generator like any configuration.
+**Choice.** The hyperparameters are found by `my_torch_hyperoptimizer`, which searches the layers, the learning rate, the momentum, the hidden activation, the initial bias and the batch size (random search, then successive halving, see [DESIGN_CHOICES.md](DESIGN_CHOICES.md#random-search-and-successive-halving)). Its result, `hyperopt/best.yml`, goes through the generator like any configuration. The curves of the search are in [BENCHMARKS.md](BENCHMARKS.md#hyperparameter-search).
 
 **Evidence.** The best configuration found is `141-256-64-5`, `LeakyReLU` / `Sigmoid`, learning rate 0.0115, momentum 0.80, batch size 1. It went from 77.6 % after 5,000 positions to 90.9 % after 15,000 and 94.2 % after 45,000, and stayed first at every round.
 

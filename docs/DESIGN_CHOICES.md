@@ -169,6 +169,8 @@ The network itself never sees `python-chess`: its inputs are built from the FEN 
 
 **Cost.** A configuration that learns slowly but ends up better can be eliminated in the first round. The scores come from short trainings, so they rank the configurations but do not give the accuracy of a fully trained network. The search runs in one process, one configuration after the other.
 
+The curves of every configuration of our search, and where each one was eliminated, are in [BENCHMARKS.md](BENCHMARKS.md#hyperparameter-search).
+
 ## Pluggable bonus tasks
 
 **Choice.** Each truth table of `my_torch_bonus` is a module of `src/bonus/tables/` with a `TABLE`, a `train` and an `evaluate` function. The task given on the command line is imported by name.

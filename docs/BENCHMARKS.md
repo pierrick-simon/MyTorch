@@ -9,6 +9,7 @@ This document measures how fast MyTorch is, how well it learns the truth tables 
 - [Chess positions](#chess-positions)
   - [Input formats](#input-formats)
 - [Training curves](#training-curves)
+- [Hyperparameter search](#hyperparameter-search)
 - [Summary](#summary)
 
 ## Setup
@@ -265,6 +266,36 @@ The tables above give one number per configuration. To see how a network improve
 
 To draw the training curves of the best configuration found by `my_torch_hyperoptimizer`, follow [Finding the best model](../README.md#finding-the-best-model) in the README.
 
+## Hyperparameter search
+
+`my_torch_hyperoptimizer` saves a checkpoint of every configuration every 2,500 positions in `hyperopt/trials/trial_<id>/`. At the end of the search, it evaluates them on its validation set with `checkpoints_csv.py` and draws `hyperopt/trials/rung_<N>.png` with `checkpoints_plot.py`: the curves of the configurations that reached rung N, each stopping where its configuration was eliminated. How the search works is explained in [Finding the best model](../README.md#finding-the-best-model).
+
+```sh
+.venv/bin/python -O my_torch_hyperoptimizer
+```
+
+Result with the default constants (27 configurations, `SEED = 42`), validation accuracy on 1,800 positions (`hyperopt/results.csv`):
+
+| Rung | Positions | Configurations | Best | Kept for the next rung |
+|------|----------:|---------------:|------|------------------------|
+| 1    | 5,000     | 27             | #18: 77.6 % (worst: 15.9 %) | #18, #17, #9, #3, #6, #19, #16, #25, #4 |
+| 2    | 15,000    | 9              | #18: 90.9 % | #18, #17, #16 |
+| 3    | 45,000    | 3              | #18: 94.2 %, then #17: 91.2 % and #16: 91.1 % | winner: #18 |
+
+The 9 configurations of rung 2. Six of them stop at 15,000 positions, where they were eliminated:
+
+![Validation accuracy and loss of the 9 configurations of rung 2](images/hyperopt_rung_2.png)
+
+The 3 finalists:
+
+![Validation accuracy and loss of the 3 finalists](images/hyperopt_rung_3.png)
+
+- #18 leads from its first checkpoint to the end, with the lowest loss at every checkpoint. #17 and #16 reach a plateau around 90 % after 20,000 positions, while #18 keeps improving up to 94.2 %.
+- A short budget can misjudge a configuration that starts slowly: #16 was only 7th after rung 1 (64.9 %) but reached the final, while #9, 3rd after rung 1 (73.9 %), was eliminated at rung 2 by 0.2 point.
+- The winner, written in `hyperopt/best.yml`: hidden layers `[256, 64]`, LeakyReLU then Sigmoid, learning rate 0.0115, momentum 0.7996, initial bias 0.187, batch size 1.
+
+The chart of rung 1 is not shown: with 27 curves, its legend covers the chart.
+
 ## Summary
 
 | Question                                         | Answer                                                              |
@@ -276,3 +307,4 @@ To draw the training curves of the best configuration found by `my_torch_hyperop
 | Does the chess analyzer work?                    | With the former 783-input encoding, it barely beat always answering `Check` on 7,200 positions (68.8 % against 65.8 %), which led to compare other encodings. |
 | Which input encoding to use?                     | King-Rays-Escape (141 inputs): ≈ 96 % against 60 to 66 % for the raw-board encodings, with the same network (see [Input formats](#input-formats)). |
 | How to see a network improve?                    | `checkpoints_csv.py` then `checkpoints_plot.py` on the checkpoints of `my_torch_analyzer --train` (see [Training curves](#training-curves)). |
+| Which hyperparameters to use?                    | Those found by `my_torch_hyperoptimizer`: `[256, 64]`, LeakyReLU, learning rate 0.0115, momentum 0.8, 94.2 % after 45,000 positions (see [Hyperparameter search](#hyperparameter-search)). |
