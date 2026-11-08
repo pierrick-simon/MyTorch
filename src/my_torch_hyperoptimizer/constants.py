@@ -17,3 +17,7 @@ ETA = 3
 MIN_BUDGET = 5000
 RESULTS_PATH = "hyperopt/results.csv"
 BEST_YML_PATH = "hyperopt/best.yml"
+
+CHECKPOINT_EVERY = 2500
+TRIALS_DIR = "hyperopt/trials"
+VALIDATION_PATH = "hyperopt/validation.txt"
