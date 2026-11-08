@@ -20,6 +20,9 @@ MyTorch is a neural network library written from scratch in pure Python (multi-l
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | Code layout, forward pass, backpropagation, `.nn` file format, how each program works. |
 | [docs/CHESS_ANALYZER.md](docs/CHESS_ANALYZER.md) | Chess file format, input and output encoding, dataset, training, checkpoints and validation. |
 | [docs/DESIGN_CHOICES.md](docs/DESIGN_CHOICES.md) | Why the project is built this way, and what each choice costs.          |
+| [docs/CHOICE_JUSTIFICATION.md](docs/CHOICE_JUSTIFICATION.md) | Why each major decision was made, its alternatives and the evidence, and how the choices answer the constraints of the project. |
+| [docs/ALTERNATIVE_PROPOSAL.md](docs/ALTERNATIVE_PROPOSAL.md) | What we would do differently if we started again, and the measured result of each change. |
+| [docs/CHOICE_IMPACT.md](docs/CHOICE_IMPACT.md)   | Legal and ethical limits, business impact of the choices, how a user can misuse them, user experience. |
 | [docs/BENCHMARKS.md](docs/BENCHMARKS.md)         | Speed, cost of type checking, accuracy on the truth tables and on chess positions, training curves. |
 | [docs/INPUT_FORMATS_COMPARAISON.md](docs/INPUT_FORMATS_COMPARAISON.md) | The five input encodings tried for the analyzer, and why King-Rays-Escape (141 inputs) was kept. |
 | [CONTRIBUTING.md](CONTRIBUTING.md)               | Code style, commits, CI, how to add an activation function, a task, a label or a hyperparameter. |
