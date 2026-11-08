@@ -1,4 +1,4 @@
-#!.venv/bin/python
+#!/usr/bin/env python3
 
 import src.my_torch_hyperoptimizer.main as main
 
